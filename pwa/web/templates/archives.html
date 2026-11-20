@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Archives{% endblock %}
+{% block main %}
+<h1>Archives</h1>
+<p class="lead">An archive is where results are sent. Attach archives to a mesh (for all its tasks) or to a host.</p>
+{% if access.can("create", "archive") %}
+<form method="get" action="{{ url_for('ui.archive_new') }}" class="inline">
+  <label for="type">New archive of type</label>
+  <select id="type" name="type">{% for t in archiver_types %}<option value="{{ t }}" {% if t == "http" %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <button>Create</button>
+</form>
+{% endif %}
+<table>
+  <thead><tr><th>Archive</th><th>Type</th><th>Sends to</th><th>Used by</th></tr></thead>
+  {% for a in archives %}
+  <tr>
+    <td><a href="{{ url_for('ui.archive', ident=a.id) }}">{{ a.name }}</a></td>
+    <td>{{ a.archiver }}{% if a.archiver == "esmond" %} <span class="pill warn">rejected by 5.3</span>{% endif %}</td>
+    <td class="quiet">{{ a.definition.data._url or a.definition.data.url or "" }}</td>
+    <td>{{ usage[a.id].meshes|length }} mesh(es), {{ usage[a.id].hosts|length }} host(s)</td>
+  </tr>
+  {% else %}<tr><td colspan="4" class="quiet">No archives yet.</td></tr>{% endfor %}
+</table>
+{% endblock %}

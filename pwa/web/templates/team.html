@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, picker with context %}
+{% block title %}{{ team.name }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.access') }}">People</a> ›</p>
+<h1>{{ team.name }} <span class="pill">team</span></h1>
+<p class="lead">{{ team.description }}</p>
+<section class="card">
+  <h2>Members <span class="count">{{ team.members|length }}</span></h2>
+  <table class="plain">
+    {% for tm in team.members %}
+    <tr><td><a href="{{ url_for('ui.user_page', ident=tm.user.id) }}">{{ tm.user.label }}</a></td><td class="quiet">{{ tm.user.email or "" }}</td>
+      <td>{% if tm.is_manager %}<span class="pill">manages this team</span>{% endif %}</td>
+      <td class="actions">{% if can_manage %}
+        <form method="post">{{ csrf_field() }}<input type="hidden" name="user_id" value="{{ tm.user.id }}"><button class="link" name="action" value="manager">{{ "stop managing" if tm.is_manager else "make manager" }}</button> <button class="link danger" name="action" value="remove">remove</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td class="quiet">Nobody yet.</td></tr>{% endfor %}
+  </table>
+  {% if can_manage %}
+  <form method="post" class="inline">{{ csrf_field() }}<input type="hidden" name="action" value="add">
+    {{ picker("user", "user_id", placeholder="Type part of a name or e-mail…") }} <button class="secondary">Add member</button></form>
+  <p class="help">People appear here after they have signed in once.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>What this team can change</h2>
+  {% include "_held.html" %}
+  {% if user.is_admin %}<form method="post" data-confirm="Delete team “{{ team.name }}” and all access given to it?">{{ csrf_field() }}<button class="danger" name="action" value="delete">Delete team</button></form>{% endif %}
+</section>
+{% endblock %}

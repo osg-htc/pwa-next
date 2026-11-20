@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Meshes{% endblock %}
+{% block main %}
+<h1>Meshes {% if access.can("create", "mesh") %}<a class="button" href="{{ url_for('ui.mesh_new') }}">New mesh</a>{% endif %}</h1>
+<p class="lead">A mesh is a published set of tasks. Each task runs one test between the hosts of one or two host groups.</p>
+<table>
+  <thead><tr><th>Mesh</th><th>Published at</th><th>Tasks</th><th>Last changed</th><th></th></tr></thead>
+  {% for x in meshes %}
+  {% set p = pubs.get("config/" ~ x.slug) %}
+  {% set on = x.tasks|selectattr("enabled")|list|length %}
+  <tr>
+    <td><a href="{{ url_for('ui.mesh', ident=x.id) }}">{{ x.name }}</a></td>
+    <td><a class="quiet" href="{{ public_url }}/config/{{ x.slug }}">config/{{ x.slug }}</a></td>
+    <td>{{ on }}{% if x.tasks|length > on %} <span class="quiet">+ {{ x.tasks|length - on }} disabled</span>{% endif %}</td>
+    <td class="quiet">{{ p.published|ago if p else "not published yet" }}</td>
+    <td>{% if p and not p.ok %}<span class="pill bad">not published</span>{% elif p and p.message %}<span class="pill warn">task withheld</span>{% endif %}</td>
+  </tr>
+  {% else %}<tr><td colspan="5" class="quiet">No meshes yet.</td></tr>{% endfor %}
+</table>
+{% endblock %}

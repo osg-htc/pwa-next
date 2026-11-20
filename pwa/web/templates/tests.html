@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Tests{% endblock %}
+{% block main %}
+<h1>Tests</h1>
+<p class="lead">A test says what to measure and how often. The same test can be used by many meshes.</p>
+{% if access.can("create", "test") %}
+<form method="get" action="{{ url_for('ui.test_new') }}" class="inline">
+  <label for="type">New test of type</label>
+  <select id="type" name="type">{% for t in test_types %}<option value="{{ t }}">{{ friendly.get(t, t) }}</option>{% endfor %}</select>
+  <button>Create</button>
+</form>
+{% endif %}
+<table>
+  <thead><tr><th>Test</th><th>Type</th><th>Runs</th><th>Tool</th><th>Used by</th><th></th></tr></thead>
+  {% for t in tests %}
+  <tr>
+    <td><a href="{{ url_for('ui.test', ident=t.id) }}">{{ t.name }}</a></td>
+    <td>{{ friendly.get(t.type, t.type) }}</td>
+    <td>{% if t.repeat %}every {{ t.repeat|duration }}{% else %}continuously{% endif %}</td>
+    <td class="quiet">{{ (t.tools or [])|join(", ") }}</td>
+    <td>{% set n = (used.get(t.id) or [])|length %}{% if n %}{{ n }} mesh{{ "" if n == 1 else "es" }}{% else %}<span class="quiet">not used</span>{% endif %}</td>
+    <td>{% if problems[t.id] %}<span class="pill bad" title="{{ problems[t.id]|join('; ') }}">invalid</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

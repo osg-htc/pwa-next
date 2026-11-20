@@ -1,0 +1,26 @@
+{% from "macros.html" import csrf_field, host_flags with context %}
+<h2>Hosts in this group <span class="count">{{ members|length }}</span></h2>
+{% if members %}
+<table class="plain">
+  {% for h in members %}
+  <tr>
+    <td><a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a></td>
+    <td>{{ h.shown_name }}</td>
+    <td class="quiet">{{ why[h.id]|join("; ") }}</td>
+    <td>{{ host_flags(h, stale_before) }}{% if group.intended_test and h.capabilities and group.intended_test not in h.capabilities %} <span class="pill warn" title="The Lookup Service does not list this test type for the host">does not advertise {{ group.intended_test }}</span>{% endif %}</td>
+    <td class="actions">{% if can_members %}
+      {% if h.id in direct_ids %}
+      <button class="link danger" hx-post="{{ url_for('ui.group_member_action', ident=group.id, host_id=h.id, action='remove') }}" hx-target="#members">remove</button>
+      {% else %}
+      <button class="link danger" hx-post="{{ url_for('ui.group_member_action', ident=group.id, host_id=h.id, action='exclude') }}" hx-target="#members" title="Keep this host out even though a rule or an included group brings it in">exclude</button>
+      {% endif %}{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="quiet">No hosts yet. Search below to add some.</p>
+{% endif %}
+{% if group.excludes %}
+<p class="quiet">Kept out of this group:
+  {% for h in group.excludes %}{{ h.hostname }}{% if can_members %} <button class="link" hx-post="{{ url_for('ui.group_member_action', ident=group.id, host_id=h.id, action='unexclude') }}" hx-target="#members">allow again</button>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}

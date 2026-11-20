@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}New host group{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.groups') }}">Host groups</a> ›</p>
+<h1>New host group</h1>
+<form method="post" class="card form">
+  {{ csrf_field() }}
+  <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ values.name }}" required autofocus></div>
+  <div class="field"><label for="intended_test">Meant for</label>
+    <select id="intended_test" name="intended_test">
+      <option value="">Any kind of test</option>
+      {% for t in test_types %}<option value="{{ t }}" {% if values.intended_test == t %}selected{% endif %}>{{ friendly.get(t, t) }}</option>{% endfor %}
+    </select>
+    <p class="help">Hosts that offer this kind of test are suggested first when you add members.</p></div>
+  <div class="field"><label for="description">Notes</label><textarea id="description" name="description" rows="2">{{ values.description }}</textarea></div>
+  <button>Create and add hosts</button> <a class="quiet" href="{{ url_for('ui.groups') }}">Cancel</a>
+</form>
+{% endblock %}

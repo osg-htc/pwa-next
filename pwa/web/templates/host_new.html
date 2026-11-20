@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Add a host{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.hosts') }}">Hosts</a> ›</p>
+<h1>Add a host by hand</h1>
+<form method="post" class="card form">
+  {{ csrf_field() }}
+  <div class="field"><label for="hostname">Host name</label>
+    <input id="hostname" name="hostname" value="{{ values.hostname }}" required autofocus placeholder="ps01.example.org">
+    <p class="help">The name tests will use. It must resolve in DNS.</p></div>
+  <div class="field"><label for="display_name">Site or display name</label>
+    <input id="display_name" name="display_name" value="{{ values.display_name }}"></div>
+  <button>Add host</button> <a class="quiet" href="{{ url_for('ui.hosts') }}">Cancel</a>
+</form>
+{% endblock %}

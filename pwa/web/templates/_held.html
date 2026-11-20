@@ -1,0 +1,8 @@
+{% set views = {"host": "ui.host", "hostgroup": "ui.group", "test": "ui.test", "archive": "ui.archive", "mesh": "ui.mesh"} %}
+<table class="plain">
+  {% for gr, obj in held %}
+  <tr><td class="quiet">{{ scopes[gr.scope_type] }}</td>
+      <td>{% if obj %}<a href="{{ url_for(views[gr.scope_type], ident=obj.id) }}">{{ obj.label }}</a>{% else %}<b>all {{ scopes[gr.scope_type]|lower }}</b>{% endif %}</td>
+      <td>{{ gr.role }}</td></tr>
+  {% else %}<tr><td class="quiet">Nothing yet. Access is given on each item's page, or for a whole kind under People.</td></tr>{% endfor %}
+</table>

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, access_panel with context %}
+{% block title %}{{ mesh.name }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.meshes') }}">Meshes</a> ›</p>
+<h1>{{ mesh.name }}</h1>
+<p class="lead">Published at <a href="{{ public_url }}/config/{{ mesh.slug }}"><code>{{ public_url }}/config/{{ mesh.slug }}</code></a>
+  {% if publication and publication.published %}— last changed {{ publication.published|ago }}{% endif %}.
+  <a href="{{ url_for('ui.mesh_preview', ident=mesh.id) }}">Preview the JSON</a></p>
+{% if problems %}<div class="flash error"><strong>This mesh is not being published;</strong> the previous version stays live. <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>{% endif %}
+
+<section class="card">
+  <h2>Tasks {% if can_edit %}<a class="button" href="{{ url_for('ui.task', ident=mesh.id) }}">Add a task</a>{% endif %}</h2>
+  {% if mesh.tasks %}
+  <table>
+    <thead><tr><th>Task</th><th>Test</th><th>Between</th><th>Size</th><th></th><th></th></tr></thead>
+    {% for t in mesh.tasks %}
+    {% set a, b, n = pairs[t.id] %}
+    <tr {% if not t.enabled %}class="off"{% endif %}>
+      <td>{% if can_edit %}<a href="{{ url_for('ui.task', ident=mesh.id, task_id=t.id) }}">{{ t.name }}</a>{% else %}{{ t.name }}{% endif %}</td>
+      <td><a href="{{ url_for('ui.test', ident=t.test.id) }}">{{ t.test.name }}</a><br><span class="quiet">{{ friendly.get(t.test.type, t.test.type) }}, {% if t.test.repeat %}every {{ t.test.repeat|duration }}{% else %}continuous{% endif %}</span></td>
+      <td>{% if t.topology == "disjoint" %}each host in <a href="{{ url_for('ui.group', ident=t.group_a.id) }}">{{ t.group_a.name }}</a><br>and each host in <a href="{{ url_for('ui.group', ident=t.group_b.id) }}">{{ t.group_b.name }}</a>
+          {% else %}all hosts in <a href="{{ url_for('ui.group', ident=t.group_a.id) }}">{{ t.group_a.name }}</a>{% endif %}</td>
+      <td class="nowrap">{{ a }}{% if b is not none %} × {{ b }}{% endif %} hosts<br><span class="quiet">{{ "{:,}".format(n) }} test pairs</span></td>
+      <td>{% if not t.enabled %}<span class="pill">disabled</span>{% elif t.id in withheld %}<span class="pill bad" title="{{ withheld[t.id]|join('; ') }}">withheld: invalid test</span>{% elif a == 0 or b == 0 %}<span class="pill warn">no hosts</span>{% endif %}</td>
+      <td class="actions">{% if can_edit %}
+        <form method="post" action="{{ url_for('ui.task_action', ident=mesh.id, task_id=t.id, action='toggle') }}">{{ csrf_field() }}<button class="link">{{ "disable" if t.enabled else "enable" }}</button></form>
+        <form method="post" action="{{ url_for('ui.task_action', ident=mesh.id, task_id=t.id, action='up') }}">{{ csrf_field() }}<button class="link" title="Move up">↑</button></form>
+        <form method="post" action="{{ url_for('ui.task_action', ident=mesh.id, task_id=t.id, action='down') }}">{{ csrf_field() }}<button class="link" title="Move down">↓</button></form>
+        <form method="post" action="{{ url_for('ui.task_action', ident=mesh.id, task_id=t.id, action='delete') }}" data-confirm="Delete task “{{ t.name }}”?">{{ csrf_field() }}<button class="link danger">delete</button></form>
+      {% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% for t in mesh.tasks if t.id in withheld %}<p class="flash warn">Task “{{ t.name }}” is not published because pScheduler would reject its test “<a href="{{ url_for('ui.test', ident=t.test.id) }}">{{ t.test.name }}</a>”: {{ withheld[t.id]|join("; ") }}</p>{% endfor %}
+  {% else %}<p class="quiet">No tasks yet. A mesh publishes nothing until it has one.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Name, address and archives</h2>
+  <form method="post" class="form">{{ csrf_field() }}
+    <fieldset {% if not can_edit %}disabled{% endif %}>
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ mesh.name }}" required>
+      <p class="help">Also the dashboard name for this mesh's results.</p></div>
+    <div class="field"><label for="slug">Address</label>
+      <span class="prefix">{{ public_url }}/config/</span><input id="slug" name="slug" class="short" value="{{ mesh.slug }}" required>
+      <p class="help">Changing this breaks every toolkit that reads the old address.</p></div>
+    <div class="field"><label for="description">Notes</label><textarea id="description" name="description" rows="2">{{ mesh.description or "" }}</textarea></div>
+    <div class="field"><label>Send results to</label>
+      {% for a in archives %}<label class="option"><input type="checkbox" name="archives" value="{{ a.id }}" {% if a in mesh.archives %}checked{% endif %}> {{ a.name }} <span class="quiet">{{ a.archiver }}</span></label>{% else %}<p class="quiet">No archives defined yet.</p>{% endfor %}
+      <p class="help">Applies to every task in this mesh. Hosts may add their own archives.</p></div>
+    {% if can_edit %}<button>Save</button>{% endif %}
+    </fieldset>
+  </form>
+  <div class="buttons">
+    {% if access.can("create", "mesh") %}<form method="post" action="{{ url_for('ui.clone', kind='meshes', ident=mesh.id) }}">{{ csrf_field() }}<button class="secondary">Make a copy</button></form>{% endif %}
+    {% if can_delete %}<form method="post" action="{{ url_for('ui.delete', kind='meshes', ident=mesh.id) }}" data-confirm="Delete mesh “{{ mesh.name }}”? Toolkits reading it will stop running its tests.">{{ csrf_field() }}<button class="danger">Delete mesh</button></form>{% endif %}
+  </div>
+</section>
+{{ access_panel("mesh", mesh, grants, can_grant, grant_roles, role_help) }}
+{% endblock %}

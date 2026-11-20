@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, picker, errors_box with context %}
+{% block title %}{{ task.name or "New task" }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.meshes') }}">Meshes</a> › <a href="{{ url_for('ui.mesh', ident=mesh.id) }}">{{ mesh.name }}</a> ›</p>
+<h1>{{ task.name or "New task" }}</h1>
+{{ errors_box(errors) }}
+<form method="post" class="card form">
+  {{ csrf_field() }}
+  <div class="field"><label for="name">Task name</label><input id="name" name="name" value="{{ picked.name }}" required {% if not task.id %}autofocus{% endif %}>
+    <p class="help">Shown as the grid name on dashboards.</p></div>
+  <div class="field"><label>Test to run</label>
+    {{ picker("test", "test_id", picked.test, "Type part of a test name…") }}</div>
+  <div class="field"><label for="topology">Between</label>
+    <select id="topology" name="topology" data-toggle="#group-b">
+      <option value="mesh" {% if picked.topology != "disjoint" %}selected{% endif %}>every pair of hosts in one group</option>
+      <option value="disjoint" {% if picked.topology == "disjoint" %}selected{% endif %}>each host in one group and each host in another</option>
+    </select></div>
+  <div class="field"><label>Host group</label>
+    {{ picker("hostgroup", "group_a_id", picked.group_a, "Type part of a group name…") }}</div>
+  <div class="field" id="group-b" {% if picked.topology != "disjoint" %}hidden{% endif %}><label>Second host group</label>
+    {{ picker("hostgroup", "group_b_id", picked.group_b, "Type part of a group name…") }}</div>
+  <div class="field check"><label><input type="checkbox" name="enabled" {% if picked.enabled %}checked{% endif %}> Enabled</label>
+    <p class="help">A disabled task stays here but is not published.</p></div>
+  <button>{{ "Save task" if task.id else "Add task" }}</button> <a class="quiet" href="{{ url_for('ui.mesh', ident=mesh.id) }}">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, access_panel, spec_field, errors_box with context %}
+{% block title %}{{ archive.name or "New archive" }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.archives') }}">Archives</a> ›</p>
+<h1>{{ archive.name or "New archive" }} <span class="pill">{{ archive.archiver }}</span></h1>
+{% if archive.archiver == "esmond" %}<p class="flash warn">pScheduler 5.3 is expected to reject tasks that use the esmond archiver. Replace this with an <code>http</code> archive pointing at the site's Logstash or OpenSearch endpoint.</p>{% endif %}
+{{ errors_box(errors) }}
+{% set posted = form is not none %}
+<form method="post" class="form" action="{{ url_for('ui.archive', ident=archive.id) if archive.id else url_for('ui.archive_new', type=archive.archiver) }}">
+  {{ csrf_field() }}
+  <fieldset {% if not can_edit %}disabled{% endif %}>
+  <section class="card">
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ form.get('name') if posted else archive.name }}" required></div>
+    <div class="field"><label for="description">Notes</label><textarea id="description" name="description" rows="2">{{ form.get('description') if posted else (archive.description or '') }}</textarea></div>
+  </section>
+  <section class="card">
+    <h2>Settings</h2>
+    {% if fields %}<div class="grid">{% for f in fields %}{{ spec_field(f, spec, form) }}{% endfor %}</div>{% endif %}
+    <details {% if extra_json or not fields %}open{% endif %}><summary>Additional settings as JSON</summary>
+      <textarea name="spec_extra" rows="4" spellcheck="false">{{ form.get('spec_extra') if posted else extra_json }}</textarea></details>
+    <details {% if top_json %}open{% endif %}><summary>Archive-level settings as JSON (for example <code>ttl</code>)</summary>
+      <textarea name="top_extra" rows="3" spellcheck="false" placeholder='{"ttl": "P3D"}'>{{ form.get('top_extra') if posted else top_json }}</textarea></details>
+    <p class="help">Everything here is published and world-readable. Do not put passwords or tokens in an archive.</p>
+  </section>
+  {% if can_edit %}<p><button>{{ "Save" if archive.id else "Create archive" }}</button> <a class="quiet" href="{{ url_for('ui.archives') }}">Cancel</a></p>{% endif %}
+  </fieldset>
+</form>
+{% if archive.id %}
+<section class="card">
+  <h2>Where it is used</h2>
+  {% if usage.meshes %}<p>Meshes: {% for x in usage.meshes %}<a href="{{ url_for('ui.mesh', ident=x.id) }}">{{ x.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+  {% if usage.hosts %}<p>Hosts ({{ usage.hosts|length }}): {% for h in usage.hosts[:40] %}<a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% if usage.hosts|length > 40 %} …{% endif %}</p>{% endif %}
+  {% if not usage.meshes and not usage.hosts %}<p class="quiet">Not used.</p>{% endif %}
+  <div class="buttons">
+    {% if access.can("create", "archive") %}<form method="post" action="{{ url_for('ui.clone', kind='archives', ident=archive.id) }}">{{ csrf_field() }}<button class="secondary">Make a copy</button></form>{% endif %}
+    {% if can_delete %}<form method="post" action="{{ url_for('ui.delete', kind='archives', ident=archive.id) }}" data-confirm="Delete archive “{{ archive.name }}”?">{{ csrf_field() }}<button class="danger">Delete</button></form>{% endif %}
+  </div>
+</section>
+{{ access_panel("archive", archive, grants, can_grant, grant_roles, role_help) }}
+{% endif %}
+{% endblock %}

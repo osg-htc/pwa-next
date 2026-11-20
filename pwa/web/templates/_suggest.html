@@ -1,0 +1,5 @@
+{% for id, label, hint in items %}
+<button type="button" class="pick" data-id="{{ id }}" data-label="{{ label }}">{{ label }}{% if hint %} <span class="quiet">{{ hint }}</span>{% endif %}</button>
+{% else %}
+<p class="quiet none">{% if text %}Nothing matches “{{ text }}”.{% else %}Nothing to choose from yet.{% endif %}</p>
+{% endfor %}

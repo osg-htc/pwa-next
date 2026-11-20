@@ -1,0 +1,14 @@
+{% set entries = entries if entries is defined else recent %}
+<table class="plain audit">
+  {% for e in entries %}
+  <tr>
+    <td class="quiet nowrap" title="{{ e.at }} UTC">{{ e.at|ago }}</td>
+    <td>{{ e.actor }}</td>
+    <td><b>{{ e.action }}</b></td>
+    <td>{% if e.object_type %}<span class="quiet">{{ e.object_type }}</span> {% endif %}{{ e.object_label or "" }}</td>
+    <td class="detail">{% if e.detail %}<details><summary>details</summary><pre>{{ e.detail|tojson(indent=2) }}</pre></details>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td class="quiet">No changes recorded yet.</td></tr>
+  {% endfor %}
+</table>

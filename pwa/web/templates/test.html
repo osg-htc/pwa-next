@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, access_panel, spec_field, errors_box with context %}
+{% block title %}{{ test.name or "New test" }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.tests') }}">Tests</a> ›</p>
+<h1>{{ test.name or "New test" }} <span class="pill">{{ friendly.get(test.type, test.type) }}</span></h1>
+{{ errors_box(errors) }}
+{% set posted = form is not none %}
+<form method="post" class="form" action="{{ url_for('ui.test', ident=test.id) if test.id else url_for('ui.test_new', type=test.type) }}">
+  {{ csrf_field() }}
+  <fieldset {% if not can_edit %}disabled{% endif %}>
+  <section class="card">
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ form.get('name') if posted else test.name }}" required {% if not test.id %}autofocus{% endif %}></div>
+    <div class="field"><label for="description">Notes</label><textarea id="description" name="description" rows="2">{{ form.get('description') if posted else (test.description or '') }}</textarea></div>
+  </section>
+
+  <section class="card">
+    <h2>How often</h2>
+    {% set continuous = (form.get('runs') == 'continuous') if posted else (not test.repeat) %}
+    <div class="field">
+      <label class="option"><input type="radio" name="runs" value="repeat" {% if not continuous %}checked{% endif %}> Repeat every
+        <input name="repeat" list="intervals" class="short" value="{{ form.get('repeat') if posted else (test.repeat or '') }}" placeholder="6h"></label>
+      <datalist id="intervals">{% for i in intervals %}<option value="{{ i }}">{{ i|duration }}</option>{% endfor %}</datalist>
+      <label class="option"><input type="radio" name="runs" value="continuous" {% if continuous %}checked{% endif %}> Run continuously <span class="quiet">(for tests that stream, such as continuous latency)</span></label>
+    </div>
+    <div class="field"><label for="slip">Start window</label>
+      <input id="slip" name="slip" class="short" value="{{ form.get('slip') if posted else (test.slip or '') }}" placeholder="half the interval">
+      <p class="help">Each run may start anywhere within this window, so hosts do not all test at the same moment. Leave empty for half the interval. Durations can be typed as <code>30m</code>, <code>6h</code> or <code>PT6H</code>.</p></div>
+    <div class="field"><label>Tool</label>
+      {% set chosen = form.getlist('tools') if posted else (test.tools or []) %}
+      {% for tool in tools %}<label class="option"><input type="checkbox" name="tools" value="{{ tool }}" {% if tool in chosen %}checked{% endif %}> {{ tool }}</label>{% endfor %}
+      {% set other = chosen|reject("in", tools)|list %}
+      <input name="tools_other" class="short" value="{{ form.get('tools_other') if posted else other|join(' ') }}" placeholder="other tool">
+      <p class="help">Leave everything unticked to let pScheduler choose.</p></div>
+  </section>
+
+  <section class="card">
+    <h2>Options</h2>
+    <p class="help">Anything left empty uses pScheduler's default. Source and destination are filled in from the host groups of each task.</p>
+    {% if fields %}
+    <div class="grid">{% for f in fields if f.common %}{{ spec_field(f, spec, form) }}{% endfor %}</div>
+    {% set rest = fields|rejectattr("common")|list %}
+    {% if rest %}
+    {% set used_rest = rest|selectattr("name", "in", spec.keys()|list)|list %}
+    <details {% if used_rest or not fields|selectattr("common")|list %}open{% endif %}><summary>More options ({{ rest|length }}){% if used_rest %} — {{ used_rest|length }} in use{% endif %}</summary>
+      <div class="grid">{% for f in rest %}{{ spec_field(f, spec, form) }}{% endfor %}</div>
+    </details>
+    {% endif %}
+    {% endif %}
+    <details {% if extra_json or not fields %}open{% endif %}><summary>Additional options as JSON</summary>
+      <textarea name="spec_extra" rows="5" spellcheck="false" placeholder='{"option": "value"}'>{{ form.get('spec_extra') if posted else extra_json }}</textarea>
+      <p class="help">For options this page has no field for. Merged into the test's settings.</p>
+    </details>
+  </section>
+  {% if can_edit %}<p><button>{{ "Save" if test.id else "Create test" }}</button> <a class="quiet" href="{{ url_for('ui.tests') }}">Cancel</a></p>{% endif %}
+  </fieldset>
+</form>
+
+{% if test.id %}
+<section class="card">
+  <h2>Where it is used</h2>
+  {% if usage %}
+  <table class="plain">{% for t in usage %}<tr><td><a href="{{ url_for('ui.mesh', ident=t.mesh.id) }}">{{ t.mesh.name }}</a></td><td>task “{{ t.name }}”{% if not t.enabled %} <span class="pill">disabled</span>{% endif %}</td></tr>{% endfor %}</table>
+  <p class="quiet">Saving a change here updates all of them.</p>
+  {% else %}<p class="quiet">Not used by any mesh.</p>{% endif %}
+  <div class="buttons">
+    {% if access.can("create", "test") %}<form method="post" action="{{ url_for('ui.clone', kind='tests', ident=test.id) }}">{{ csrf_field() }}<button class="secondary">Make a copy</button></form>{% endif %}
+    {% if can_delete %}<form method="post" action="{{ url_for('ui.delete', kind='tests', ident=test.id) }}" data-confirm="Delete test “{{ test.name }}”?">{{ csrf_field() }}<button class="danger">Delete</button></form>{% endif %}
+  </div>
+</section>
+{{ access_panel("test", test, grants, can_grant, grant_roles, role_help) }}
+{% endif %}
+{% endblock %}

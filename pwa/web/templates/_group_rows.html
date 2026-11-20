@@ -1,0 +1,14 @@
+<table>
+  <thead><tr><th>Host group</th><th>Hosts</th><th>Meant for</th><th>Used by</th><th></th></tr></thead>
+  {% for gr in groups %}
+  <tr>
+    <td><a href="{{ url_for('ui.group', ident=gr.id) }}">{{ gr.name }}</a></td>
+    <td>{{ sizes[gr.id] }}</td>
+    <td class="quiet">{{ friendly.get(gr.intended_test, gr.intended_test or "") }}</td>
+    <td>{% set n = (used.get(gr.id) or [])|length %}{% if n %}{{ n }} mesh{{ "" if n == 1 else "es" }}{% elif gr.included_by %}<span class="quiet">other groups</span>{% else %}<span class="quiet">not used</span>{% endif %}</td>
+    <td>{% if gr.rule %}<span class="pill">rule</span>{% endif %}{% if gr.includes %} <span class="pill">includes {{ gr.includes|length }}</span>{% endif %}{% if sizes[gr.id] == 0 %} <span class="pill warn">empty</span>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="quiet">No host groups match.</td></tr>
+  {% endfor %}
+</table>

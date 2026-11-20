@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, access_panel, picker with context %}
+{% block title %}{{ group.name }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.groups') }}">Host groups</a> ›</p>
+<h1>{{ group.name }}</h1>
+
+<section class="card" id="members">{% include "_members.html" %}</section>
+
+{% if can_members %}
+<section class="card">
+  <h2>Add hosts</h2>
+  <input type="search" name="_q" class="wide" autocomplete="off" placeholder="Type part of a host name or site — matches appear as you type"
+         hx-get="{{ url_for('ui.group_suggest', ident=group.id) }}" hx-trigger="input changed delay:150ms, members-changed from:body" hx-target="#matches">
+  <div id="matches" class="matches"></div>
+  <details><summary>Paste a list of host names instead</summary>
+    <form method="post" action="{{ url_for('ui.group_add_bulk', ident=group.id) }}">{{ csrf_field() }}
+      <textarea name="hostnames" rows="4" placeholder="One per line, or separated by spaces or commas"></textarea>
+      <button class="secondary">Add all</button>
+    </form>
+  </details>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Include other host groups</h2>
+  <p class="help">Every host in an included group is in this group too, and stays in step when that group changes.</p>
+  {% if group.includes %}
+  <table class="plain">
+    {% for child in group.includes %}
+    <tr><td><a href="{{ url_for('ui.group', ident=child.id) }}">{{ child.name }}</a></td>
+        <td class="actions">{% if can_edit %}<form method="post" action="{{ url_for('ui.group_uninclude', ident=group.id, child_id=child.id) }}">{{ csrf_field() }}<button class="link danger">stop including</button></form>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% if can_edit %}
+  <form method="post" action="{{ url_for('ui.group_include', ident=group.id) }}" class="inline">{{ csrf_field() }}
+    {{ picker("hostgroup", "child_id", placeholder="Type part of a group name…") }}
+    <button class="secondary">Include</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Name, purpose and rule</h2>
+  <form method="post" class="form">{{ csrf_field() }}
+    <fieldset {% if not can_edit %}disabled{% endif %}>
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ group.name }}" required></div>
+    <div class="field"><label for="intended_test">Meant for</label>
+      <select id="intended_test" name="intended_test">
+        <option value="">Any kind of test</option>
+        {% for t in test_types %}<option value="{{ t }}" {% if group.intended_test == t %}selected{% endif %}>{{ friendly.get(t, t) }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label for="description">Notes</label><textarea id="description" name="description" rows="2">{{ group.description or "" }}</textarea></div>
+    <div class="field">
+      <label>Add hosts automatically when they match</label>
+      <p class="help">Hosts that match are in the group for as long as they match; new hosts in the Lookup Service join by themselves. Leave the values empty for no rule.</p>
+      {% set conditions = (group.rule.conditions if group.rule else []) + [{}, {}] %}
+      <p><select name="rule_match">
+        <option value="all" {% if not group.rule or group.rule.match != "any" %}selected{% endif %}>all of these are true</option>
+        <option value="any" {% if group.rule and group.rule.match == "any" %}selected{% endif %}>any of these is true</option></select></p>
+      {% for c in conditions %}
+      <div class="rule">
+        <select name="rule_field">{% for value, label in rule_fields.items() %}<option value="{{ value }}" {% if c.field == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <select name="rule_op">{% for value, label in rule_ops.items() %}<option value="{{ value }}" {% if c.op == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <input name="rule_value" value="{{ c.value or '' }}" placeholder="value">
+      </div>
+      {% endfor %}
+    </div>
+    {% if can_edit %}<button>Save</button>{% endif %}
+    </fieldset>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Where it is used</h2>
+  {% if tasks %}
+  <table class="plain">
+    {% for t in tasks %}<tr><td><a href="{{ url_for('ui.mesh', ident=t.mesh.id) }}">{{ t.mesh.name }}</a></td><td>task “{{ t.name }}”{% if not t.enabled %} <span class="pill">disabled</span>{% endif %}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if containers %}<p>Included by: {% for c in containers %}<a href="{{ url_for('ui.group', ident=c.id) }}">{{ c.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+  {% if not tasks and not containers %}<p class="quiet">Not used by any mesh or group.</p>{% endif %}
+  <div class="buttons">
+    {% if access.can("create", "hostgroup") %}<form method="post" action="{{ url_for('ui.clone', kind='groups', ident=group.id) }}">{{ csrf_field() }}<button class="secondary">Make a copy</button></form>{% endif %}
+    {% if can_delete %}<form method="post" action="{{ url_for('ui.delete', kind='groups', ident=group.id) }}" data-confirm="Delete host group “{{ group.name }}”?">{{ csrf_field() }}<button class="danger">Delete</button></form>{% endif %}
+  </div>
+</section>
+{{ access_panel("hostgroup", group, grants, can_grant, grant_roles, role_help) }}
+{% endblock %}

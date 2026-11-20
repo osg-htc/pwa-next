@@ -1,0 +1,92 @@
+{# Shared building blocks. #}
+
+{% macro csrf_field() %}<input type="hidden" name="_csrf" value="{{ csrf }}">{% endmacro %}
+
+{# A type-ahead chooser: type part of a name, pick from the matches. #}
+{% macro picker(kind, name, current=None, placeholder="Start typing…", query="", current_id=None, current_label=None) %}
+<div class="picker">
+  <input type="hidden" name="{{ name }}" value="{{ current_id if current_id is not none else (current.id if current else '') }}">
+  <input type="search" name="_q" autocomplete="off" placeholder="{{ placeholder }}"
+         value="{{ current_label if current_label is not none else (current.label if current else '') }}"
+         hx-get="{{ url_for('ui.suggest', kind=kind) }}{{ query }}"
+         hx-trigger="input changed delay:150ms, focus" hx-target="next .suggestions">
+  <div class="suggestions"></div>
+</div>
+{% endmacro %}
+
+{# One input for one option of a pScheduler spec, built from its schema. #}
+{% macro spec_field(f, spec, form, prefix="spec.") %}
+{% set key = prefix ~ f.name %}
+{% set posted = form is not none %}
+{% set val = form.get(key) if posted else spec.get(f.name) %}
+<div class="field{% if f.kind == 'bool' %} check{% endif %}">
+  {% if f.kind == "bool" %}
+    <label><input type="checkbox" name="{{ key }}" {% if val %}checked{% endif %}> {{ f.title }} <code>{{ f.name }}</code></label>
+  {% else %}
+    <label for="{{ key }}">{{ f.title }} <code>{{ f.name }}</code></label>
+    {% if f.kind == "select" %}
+      <select id="{{ key }}" name="{{ key }}">
+        <option value="">— not set —</option>
+        {% for c in f.choices %}<option value="{{ c }}" {% if val is not none and val|string == c|string %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    {% elif f.kind == "number" %}
+      <input id="{{ key }}" name="{{ key }}" type="number" step="{{ '1' if f.integer else 'any' }}"
+             {% if f.minimum is not none %}min="{{ f.minimum }}"{% endif %} {% if f.maximum is not none %}max="{{ f.maximum }}"{% endif %}
+             value="{{ val if val is not none else '' }}">
+    {% elif f.kind == "duration" %}
+      <input id="{{ key }}" name="{{ key }}" type="text" list="durations" placeholder="e.g. 30s, 5m or PT30S" value="{{ val or '' }}">
+    {% elif f.kind == "json" %}
+      <textarea id="{{ key }}" name="{{ key }}" rows="3" spellcheck="false" placeholder="JSON">{% if posted %}{{ val or '' }}{% elif val is not none %}{{ val|tojson(indent=2) }}{% endif %}</textarea>
+    {% else %}
+      <input id="{{ key }}" name="{{ key }}" type="text" value="{{ val if val is not none else '' }}">
+    {% endif %}
+  {% endif %}
+  {% if f.help %}<p class="help">{{ f.help }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro errors_box(errors) %}
+{% if errors %}
+<div class="flash error">
+  <strong>Not saved.</strong>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Who can change this item, and a form to give someone access. #}
+{% macro access_panel(scope_type, obj, grants, can_grant, grant_roles, role_help) %}
+<section class="card">
+  <h2>Who can change this</h2>
+  {% if grants %}
+  <table class="plain">
+    {% for gr, p in grants %}
+    <tr>
+      <td>{% if gr.principal_type == "team" %}<a href="{{ url_for('ui.team', ident=p.id) }}">{{ p.name }}</a> <span class="pill">team</span>
+          {% else %}<a href="{{ url_for('ui.user_page', ident=p.id) }}">{{ p.label }}</a>{% endif %}</td>
+      <td>{{ gr.role }} <span class="quiet">— can {{ role_help[gr.role] }}</span></td>
+      <td class="quiet">{% if gr.scope_id is none %}applies to all {{ scopes[scope_type]|lower }}{% endif %}</td>
+      <td class="actions">{% if can_grant and gr.scope_id is not none or user.is_admin %}
+        <form method="post" action="{{ url_for('ui.grant_delete', grant_id=gr.id) }}">{{ csrf_field() }}<button class="link danger">remove</button></form>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="quiet">Only service administrators.</p>{% endif %}
+  {% if can_grant %}
+  <form method="post" action="{{ url_for('ui.grant_add') }}" class="inline">
+    {{ csrf_field() }}
+    <input type="hidden" name="scope_type" value="{{ scope_type }}">
+    <input type="hidden" name="scope_id" value="{{ obj.id }}">
+    {{ picker("principal", "principal", placeholder="Person or team…") }}
+    <select name="role">{% for r in grant_roles %}<option value="{{ r }}">{{ r }} — can {{ role_help[r] }}</option>{% endfor %}</select>
+    <button>Give access</button>
+  </form>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{% macro host_flags(h, stale_before) %}
+{%- if h.source == "manual" %}<span class="pill">added by hand</span>
+{%- elif stale_before and h.last_seen and h.last_seen < stale_before %}<span class="pill warn" title="Last listed by the Lookup Service {{ h.last_seen|ago }}">not seen {{ h.last_seen|ago }}</span>{% endif %}
+{%- if h.no_agent %} <span class="pill">no agent</span>{% endif %}
+{%- endmacro %}

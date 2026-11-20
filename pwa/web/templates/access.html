@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, picker with context %}
+{% block title %}People{% endblock %}
+{% block main %}
+<h1>People and access</h1>
+<p class="lead">Anyone who signs in through their home institution can look. Changing things needs a role, given to a person or to a team, either on one item (on that item's page) or on every item of a kind (below).</p>
+
+<section class="card">
+  <h2>Teams</h2>
+  <table class="plain">
+    {% for t in teams %}<tr><td><a href="{{ url_for('ui.team', ident=t.id) }}">{{ t.name }}</a></td><td class="quiet">{{ t.description }}</td><td>{{ t.members|length }} member(s)</td></tr>
+    {% else %}<tr><td class="quiet">No teams yet. A team lets you give a whole group of people access in one step.</td></tr>{% endfor %}
+  </table>
+  {% if user.is_admin %}
+  <form method="post" action="{{ url_for('ui.team_new') }}" class="inline">{{ csrf_field() }}
+    <input name="name" placeholder="New team name" required> <input name="description" placeholder="What it is for" class="wide"> <button class="secondary">Create team</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Access to everything of a kind</h2>
+  <table class="plain">
+    {% for scope, label in scopes.items() %}
+    <tr><th colspan="4">{{ label }}</th></tr>
+    {% for gr, p in wide[scope] %}
+    <tr><td>{% if gr.principal_type == "team" %}<a href="{{ url_for('ui.team', ident=p.id) }}">{{ p.name }}</a> <span class="pill">team</span>{% else %}<a href="{{ url_for('ui.user_page', ident=p.id) }}">{{ p.label }}</a>{% endif %}</td>
+        <td>{{ gr.role }}</td><td class="quiet">can {{ role_help[gr.role] }}</td>
+        <td class="actions">{% if user.is_admin %}<form method="post" action="{{ url_for('ui.grant_delete', grant_id=gr.id) }}">{{ csrf_field() }}<button class="link danger">remove</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="4" class="quiet">Only service administrators, and owners of individual items.</td></tr>{% endfor %}
+    {% endfor %}
+  </table>
+  {% if user.is_admin %}
+  <form method="post" action="{{ url_for('ui.grant_add') }}" class="inline">{{ csrf_field() }}
+    {{ picker("principal", "principal", placeholder="Person or team…") }}
+    <select name="role">{% for r in ["owner", "editor", "creator", "contributor"] %}<option value="{{ r }}">{{ r }} — can {{ role_help[r] }}</option>{% endfor %}</select>
+    <span>for all</span>
+    <select name="scope_type">{% for scope, label in scopes.items() %}<option value="{{ scope }}">{{ label|lower }}</option>{% endfor %}</select>
+    <button>Give access</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>People <span class="count">{{ users|length }}</span></h2>
+  <table>
+    <thead><tr><th>Name</th><th>E-mail</th><th>Signs in through</th><th>Last seen</th><th>Items</th><th></th></tr></thead>
+    {% for p in users %}
+    <tr><td><a href="{{ url_for('ui.user_page', ident=p.id) }}">{{ p.label }}</a></td><td>{{ p.email or "" }}</td><td class="quiet">{{ p.idp or "" }}</td>
+        <td class="quiet">{{ p.last_login|ago }}</td><td>{{ grant_counts.get(p.id, "") }}</td>
+        <td>{% if p.is_admin %}<span class="pill">administrator</span>{% endif %}{% if not p.active %} <span class="pill bad">disabled</span>{% endif %}{% if p.is_placeholder %} <span class="pill warn">not linked to a login</span>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endblock %}

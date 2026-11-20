@@ -1,0 +1,16 @@
+{% from "macros.html" import host_flags with context %}
+<p class="quiet">{{ total }} host{{ "" if total == 1 else "s" }}{% if total > hosts|length %}, showing the first {{ hosts|length }} — type more to narrow down{% endif %}.</p>
+<table>
+  <thead><tr><th>Host</th><th>Site</th><th>Offers</th><th>Host groups</th><th></th></tr></thead>
+  {% for h in hosts %}
+  <tr>
+    <td><a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a></td>
+    <td>{{ h.shown_name }}</td>
+    <td class="quiet">{{ (h.capabilities or [])|join(", ") }}</td>
+    <td>{{ group_counts.get(h.id, 0) or "" }}</td>
+    <td>{{ host_flags(h, stale_before) }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="quiet">No hosts match.</td></tr>
+  {% endfor %}
+</table>

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Development sign-in{% endblock %}
+{% block main %}
+<h1>Development sign-in</h1>
+<p class="flash warn">This page exists only because <code>PWA_AUTH=dev</code>. In production, sign-in is handled by the institution login (CILogon) in front of this application.</p>
+<form method="get" class="inline"><input type="search" name="q" value="{{ q }}" placeholder="Find a person…"> <button class="secondary">Find</button></form>
+<section class="card">
+  <table class="plain">
+    {% for p in people %}
+    <tr><td>{{ p.label }}</td><td class="quiet">{{ p.subject }}</td><td>{% if p.is_admin %}<span class="pill">administrator</span>{% endif %}</td>
+      <td class="actions"><form method="post"><input type="hidden" name="uid" value="{{ p.id }}"><button class="secondary">Sign in as</button></form></td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endblock %}

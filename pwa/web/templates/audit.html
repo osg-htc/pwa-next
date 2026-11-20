@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+{% block main %}
+<h1>History</h1>
+<form method="get" class="inline"><input type="search" name="q" value="{{ q }}" placeholder="Filter by person, item or action…"> <button class="secondary">Filter</button></form>
+<section class="card">{% include "_audit_rows.html" %}</section>
+{% endblock %}

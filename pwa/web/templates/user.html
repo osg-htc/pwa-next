@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, picker with context %}
+{% block title %}{{ person.label }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.access') }}">People</a> ›</p>
+<h1>{{ person.label }}</h1>
+<p class="lead">{{ person.email or "" }}{% if person.idp %} · signs in through {{ person.idp }}{% endif %} · last seen {{ person.last_login|ago }}<br><span class="quiet">{% if person.is_placeholder %}Imported from the previous PWA; not yet linked to a login.{% else %}Login identifier: <code>{{ person.subject }}</code>{% for i in person.identities %}, <code>{{ i.subject }}</code>{% endfor %}{% endif %}</span></p>
+<section class="card">
+  <h2>Teams</h2>
+  <p>{% for tm in person.memberships %}<a href="{{ url_for('ui.team', ident=tm.team.id) }}">{{ tm.team.name }}</a>{% if tm.is_manager %} (manager){% endif %}{% if not loop.last %}, {% endif %}{% else %}<span class="quiet">None.</span>{% endfor %}</p>
+</section>
+<section class="card">
+  <h2>What {{ "you" if person.id == user.id else "this person" }} can change directly</h2>
+  {% if person.is_admin %}<p>Service administrator: everything.</p>{% endif %}
+  {% include "_held.html" %}
+</section>
+{% if user.is_admin %}
+<section class="card">
+  <h2>Administration</h2>
+  <form method="post" class="form">{{ csrf_field() }}<input type="hidden" name="action" value="save">
+    <div class="field check"><label><input type="checkbox" name="active" {% if person.active %}checked{% endif %}> May sign in</label></div>
+    <div class="field check"><label><input type="checkbox" name="is_admin" {% if person.is_admin %}checked{% endif %}> Service administrator (can change everything, including people)</label></div>
+    <button>Save</button>
+  </form>
+  <h3>Move this account's access to another account</h3>
+  <p class="help">For accounts imported from the old PWA: once the person has signed in through their institution, move the imported access to that login. The imported account is then deleted.</p>
+  <form method="post" class="inline" data-confirm="Move all access from this account and delete it?">{{ csrf_field() }}<input type="hidden" name="action" value="merge">
+    {{ picker("user", "target_id", placeholder="Account to move access to…") }} <button class="secondary">Move access</button></form>
+</section>
+{% endif %}
+{% endblock %}

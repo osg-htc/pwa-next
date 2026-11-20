@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}New mesh{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.meshes') }}">Meshes</a> ›</p>
+<h1>New mesh</h1>
+<form method="post" class="card form">
+  {{ csrf_field() }}
+  <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ form.get('name', '') }}" required autofocus></div>
+  <div class="field"><label for="slug">Address</label>
+    <span class="prefix">{{ public_url }}/config/</span><input id="slug" name="slug" class="short" value="{{ form.get('slug', '') }}" placeholder="made from the name">
+    <p class="help">Toolkits fetch the mesh from this address, so choose it once and keep it.</p></div>
+  <div class="field"><label for="description">Notes</label><textarea id="description" name="description" rows="2">{{ form.get('description', '') }}</textarea></div>
+  <div class="field"><label>Send results to</label>
+    {% for a in archives %}<label class="option"><input type="checkbox" name="archives" value="{{ a.id }}" {% if archives|length == 1 %}checked{% endif %}> {{ a.name }} <span class="quiet">{{ a.archiver }}</span></label>{% else %}<p class="quiet">No archives defined yet.</p>{% endfor %}</div>
+  <button>Create and add tasks</button> <a class="quiet" href="{{ url_for('ui.meshes') }}">Cancel</a>
+</form>
+{% endblock %}

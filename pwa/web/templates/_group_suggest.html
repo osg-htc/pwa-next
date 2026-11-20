@@ -1,0 +1,11 @@
+{% from "macros.html" import host_flags with context %}
+{% for h in hosts %}
+<div class="match">
+  <button type="button" hx-post="{{ url_for('ui.group_add_member', ident=group.id) }}" hx-vals='{"host_id": {{ h.id }}}' hx-target="#members">Add</button>
+  <b>{{ h.hostname }}</b> <span class="quiet">{{ h.shown_name }}</span>
+  {{ host_flags(h, stale_before) }}
+  {% if group.intended_test and group.intended_test not in (h.capabilities or []) %}<span class="pill warn">does not advertise {{ group.intended_test }}</span>{% endif %}
+</div>
+{% else %}
+{% if text %}<p class="quiet">No host matches “{{ text }}” (or every match is already in the group). Hosts that are not registered in the Lookup Service can be <a href="{{ url_for('ui.host_new') }}">added by hand</a>.</p>{% endif %}
+{% endfor %}

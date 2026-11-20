@@ -1,0 +1,11 @@
+# Pinned to what EL9 (and EPEL 9) package, so development matches deployment.
+flask==2.0.3
+werkzeug==2.0.3
+jinja2==3.0.3
+itsdangerous==2.0.1
+markupsafe==2.0.1
+click==8.0.4
+sqlalchemy==1.4.45
+jsonschema==3.2.0
+pytest
+# Production also needs python3-psycopg2 for PostgreSQL.

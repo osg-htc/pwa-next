@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Host groups{% endblock %}
+{% block main %}
+<h1>Host groups {% if access.can("create", "hostgroup") %}<a class="button" href="{{ url_for('ui.group_new') }}">New host group</a>{% endif %}</h1>
+<p class="lead">A host group is a set of hosts that test together. Groups can include other groups and can pick hosts by rule.</p>
+<form method="get" class="inline filterbar" hx-get="{{ url_for('ui.groups') }}" hx-target="#rows" hx-trigger="input changed delay:200ms from:find input">
+  <input type="search" name="q" value="{{ q }}" placeholder="Type part of a group name…" autofocus>
+</form>
+<div id="rows">{% include "_group_rows.html" %}</div>
+{% endblock %}

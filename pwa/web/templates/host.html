@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, access_panel, host_flags with context %}
+{% block title %}{{ host.hostname }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.hosts') }}">Hosts</a> ›</p>
+<h1>{{ host.hostname }} {{ host_flags(host, none) }}{% if stale %}<span class="pill warn">not seen {{ host.last_seen|ago }}</span>{% endif %}</h1>
+<p class="lead">
+  {% if host.source == "lookup" %}From the Lookup Service; last listed {{ host.last_seen|ago }}.{% else %}Added by hand.{% endif %}
+  {% if host.capabilities %}Offers: {{ host.capabilities|join(", ") }}.{% endif %}
+  Its tests: <a href="{{ public_url }}/auto/{{ host.hostname }}"><code>{{ public_url }}/auto/{{ host.hostname }}</code></a>
+</p>
+
+<section class="card">
+  <h2>Where it is used</h2>
+  {% if not usage.effective %}<p class="quiet">Not in any host group, so it runs no tests from here.</p>{% else %}
+  <p>In <b>{{ usage.effective|length }}</b> host group(s), which puts it in <b>{{ usage.tasks|length }}</b> task(s) across <b>{{ usage.meshes|length }}</b> mesh(es):
+    {% for x in usage.meshes %}<a href="{{ url_for('ui.mesh', ident=x.id) }}">{{ x.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  <table class="plain">
+    {% for gr in usage.effective %}
+    <tr>
+      <td><a href="{{ url_for('ui.group', ident=gr.id) }}">{{ gr.name }}</a></td>
+      <td class="quiet">{% if gr in usage.direct %}added by name{% elif gr in usage.by_rule %}matches the group's rule{% else %}through an included group{% endif %}</td>
+      <td class="actions">{% if gr in usage.direct and access.can("members", "hostgroup", gr) %}
+        <form method="post" action="{{ url_for('ui.group_member_action', ident=gr.id, host_id=host.id, action='remove') }}">{{ csrf_field() }}<input type="hidden" name="back" value="host"><button class="link danger">remove from this group</button></form>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% if can_delete %}<p><a class="button danger" href="{{ url_for('ui.host_remove', ident=host.id) }}">Remove this host from everything…</a></p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Settings</h2>
+  <form method="post" class="form">
+    {{ csrf_field() }}
+    <fieldset {% if not can_edit %}disabled{% endif %}>
+    <div class="field"><label for="display_name">Site or display name</label>
+      <input id="display_name" name="display_name" value="{{ host.display_name or '' }}">
+      <p class="help">Shown on dashboards.{% if host.site %} Leave empty to use the name from the Lookup Service: “{{ host.site }}”.{% endif %}</p></div>
+    <div class="field"><label for="display_url">Link for this host</label>
+      <input id="display_url" name="display_url" value="{{ host.display_url or '' }}" placeholder="https://{{ host.hostname }}/toolkit/"></div>
+    <div class="field check"><label><input type="checkbox" name="no_agent" {% if host.no_agent %}checked{% endif %}> This host does not read its configuration from here (no agent)</label>
+      <p class="help">Other hosts still test to it; it is not expected to start tests itself.</p></div>
+    <div class="field"><label>Extra archives for tests this host runs</label>
+      {% for a in archives %}<label class="option"><input type="checkbox" name="archives" value="{{ a.id }}" {% if a in host.archives %}checked{% endif %}> {{ a.name }} <span class="quiet">{{ a.archiver }}</span></label>{% else %}<p class="quiet">No archives defined.</p>{% endfor %}</div>
+    {% if can_edit %}<button>Save</button>{% endif %}
+    </fieldset>
+  </form>
+</section>
+
+{% if host.addresses or host.communities or host.info %}
+<section class="card">
+  <h2>What the Lookup Service says</h2>
+  <details><summary>{{ (host.addresses or [])|length }} address(es), {{ (host.communities or [])|length }} communities, {{ (host.info or {})|length }} attributes</summary>
+  <table class="plain small">
+    {% for a in host.addresses or [] %}<tr><td class="quiet">address</td><td>{{ a.address }}</td></tr>{% endfor %}
+    {% for c in host.communities or [] %}<tr><td class="quiet">community</td><td>{{ c }}</td></tr>{% endfor %}
+    {% for k, v in (host.info or {})|dictsort %}<tr><td class="quiet">{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}
+  </table></details>
+</section>
+{% endif %}
+{{ access_panel("host", host, grants, can_grant, grant_roles, role_help) }}
+{% endblock %}
