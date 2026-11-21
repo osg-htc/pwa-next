@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Branding{% endblock %}
+{% block main %}
+<h1>Branding</h1>
+<p class="lead">How this service presents itself: name, logo, colours, and the information and links in the page footer and on the About page. Changes show immediately.</p>
+{% set posted = form is not none %}
+{% set links = (value.links or []) + [{}, {}, {}] %}
+<form method="post" enctype="multipart/form-data" class="form">
+  {{ csrf_field() }}
+  <section class="card">
+    <h2>Name and logo</h2>
+    <div class="field"><label for="site_name">Service name</label><input id="site_name" name="site_name" value="{{ value.site_name or '' }}" maxlength="80"></div>
+    <div class="field"><label for="tagline">Tagline</label><input id="tagline" name="tagline" value="{{ value.tagline or '' }}" maxlength="160" placeholder="for example: OSG and WLCG perfSONAR mesh configuration">
+      <p class="help">Shown under the name in the page header.</p></div>
+    <div class="field"><label for="logo">Logo</label>
+      {% if value.has_logo %}<p><img class="logo-preview" src="{{ url_for('ui.brand_logo') }}" alt="current logo"></p>{% endif %}
+      <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
+      <p class="help">PNG, JPEG, GIF, WebP or SVG, under 512 KB. It is shown at most 34 pixels high on the header colour, so a light or transparent logo works best.</p></div>
+  </section>
+  <section class="card">
+    <h2>Colours</h2>
+    <label class="swatch"><input type="color" name="header" value="{{ value.header }}"> Header</label>
+    <label class="swatch"><input type="color" name="accent" value="{{ value.accent }}"> Buttons and links</label>
+  </section>
+  <section class="card">
+    <h2>About and contact</h2>
+    <div class="field"><label for="about">About this service</label>
+      <textarea id="about" name="about" rows="6" placeholder="Who runs this service, what it is for, and how to get access.">{{ value.about or '' }}</textarea>
+      <p class="help">Plain text for the About page. Leave a blank line between paragraphs; web addresses become links.</p></div>
+    <div class="field"><label for="contact">Contact</label><input id="contact" name="contact" value="{{ value.contact or '' }}" placeholder="an e-mail address or a web address">
+      <p class="help">Shown in the footer and on the About page.</p></div>
+  </section>
+  <section class="card">
+    <h2>Links in the footer</h2>
+    <p class="help">For example documentation, a support channel, the dashboards. Up to 10; leave a row empty to drop it.</p>
+    {% for l in links %}
+    <div class="rule"><input name="link_label" value="{{ l.label or '' }}" placeholder="Name" maxlength="60"> <input name="link_url" class="wide" value="{{ l.url or '' }}" placeholder="https://…"></div>
+    {% endfor %}
+  </section>
+  <p><button>Save</button></p>
+</form>
+{% if value.has_logo %}
+<form method="post">{{ csrf_field() }}<input type="hidden" name="action" value="remove-logo"><button class="secondary">Remove the logo</button></form>
+{% endif %}
+{% endblock %}

@@ -5,7 +5,7 @@ import secrets
 
 from flask import Flask, abort, g, redirect, request, session as cookie, url_for
 
-from .. import authz, config, db
+from .. import authz, branding, config, db
 from .. import models as m
 from .. import publish as publisher
 from ..services import audit
@@ -22,6 +22,7 @@ def create_app(overrides=None):
     app.secret_key = cfg["SECRET_KEY"] or secrets.token_hex(32)
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024        # largest form post (logo upload)
 
     if cfg["DATABASE_URL"].startswith("sqlite:///"):
         os.makedirs(os.path.dirname(cfg["DATABASE_URL"][10:]) or ".", exist_ok=True)
@@ -41,7 +42,7 @@ def create_app(overrides=None):
         g.user = _current_user(app, g.db)
         g.access = authz.Access(g.db, g.user)
         if request.endpoint in ("static", "pub.config_index", "pub.config", "pub.auto",
-                                "dev.login", "dev.login_as"):
+                                "dev.login", "dev.login_as", "ui.brand_logo"):
             return None
         if g.user is None:
             if app.config["AUTH"] == "dev":
@@ -59,8 +60,11 @@ def create_app(overrides=None):
     def _helpers():
         if "csrf" not in cookie:
             cookie["csrf"] = secrets.token_hex(16)
+        brand = branding.get(g.db, app.config["SITE_NAME"]) if g.get("db") is not None else \
+            dict(branding.DEFAULTS, site_name=app.config["SITE_NAME"], has_logo=False)
         return {"user": g.get("user"), "access": g.get("access"), "csrf": cookie["csrf"],
-                "site_name": app.config["SITE_NAME"], "auth_mode": app.config["AUTH"],
+                "brand": brand, "site_name": brand["site_name"], "auth_mode": app.config["AUTH"],
+                "app_version": __import__("pwa").__version__, "about_paragraphs": branding.paragraphs,
                 "scopes": authz.SCOPES, "public_url": app.config["PUBLIC_URL"].rstrip("/")}
 
     @app.template_filter("ago")

@@ -7,10 +7,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='pwa.css') }}">
 <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='pwa.js') }}" defer></script>
+<style>:root { --accent: {{ brand.accent }}; --header: {{ brand.header }}; }</style>
 </head>
 <body data-csrf="{{ csrf }}">
 <header class="top">
-  <a class="brand" href="{{ url_for('ui.dashboard') }}">{{ site_name }}</a>
+  <a class="brand" href="{{ url_for('ui.dashboard') }}">{% if brand.has_logo %}<img src="{{ url_for('ui.brand_logo') }}" alt="">{% endif %}<span>{{ site_name }}{% if brand.tagline %}<small>{{ brand.tagline }}</small>{% endif %}</span></a>
   {% if user %}
   <nav>
     {% set here = request.endpoint or "" %}
@@ -38,6 +39,13 @@
   {% endwith %}
   {% block main %}{% endblock %}
 </main>
+<footer class="site">
+  <a href="{{ url_for('ui.about') }}">About this service</a>
+  {% for l in brand.links %}<a href="{{ l.url }}" rel="noopener">{{ l.label }}</a>{% endfor %}
+  {% if brand.contact %}<span>Questions: {% if "@" in brand.contact and "://" not in brand.contact %}<a href="mailto:{{ brand.contact }}">{{ brand.contact }}</a>{% else %}<a href="{{ brand.contact }}" rel="noopener">{{ brand.contact }}</a>{% endif %}</span>{% endif %}
+  <span>pwa-next {{ app_version }}</span>
+  {% if user and user.is_admin %}<a href="{{ url_for('ui.branding_settings') }}">Branding</a>{% endif %}
+</footer>
 <datalist id="durations">
   {% for d in ["PT1S", "PT5S", "PT10S", "PT20S", "PT25S", "PT30S", "PT1M", "PT5M"] %}<option value="{{ d }}">{% endfor %}
 </datalist>

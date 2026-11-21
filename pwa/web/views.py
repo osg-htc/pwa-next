@@ -10,7 +10,7 @@ from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, send_from_directory, session as cookie, url_for)
 from sqlalchemy import func, or_
 
-from .. import authz, reports, services, specforms, testinfo
+from .. import authz, branding, reports, services, specforms, testinfo
 from .. import models as m
 from .. import publish as publisher
 from . import publish_now
@@ -1041,6 +1041,65 @@ def task_action(ident, task_id, action):
     else:
         abort(404)
     return redirect(url_for("ui.mesh", ident=mesh.id))
+
+
+# --------------------------------------------------------------------------
+# branding and the about page
+# --------------------------------------------------------------------------
+
+@ui.route("/branding/logo")
+def brand_logo():
+    found = branding.logo(g.db)
+    if not found:
+        abort(404)
+    mime, data = found
+    resp = current_app.response_class(data, mimetype=mime)
+    resp.headers["Cache-Control"] = "max-age=300"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    # An SVG opened on its own must not be able to run scripts on this site.
+    resp.headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+    return resp
+
+
+@ui.route("/about")
+def about():
+    counts = {"meshes": g.db.query(m.Mesh).count(), "groups": g.db.query(m.HostGroup).count(),
+              "tests": g.db.query(m.Test).count()}
+    admins = g.db.query(m.User).filter(m.User.is_admin.is_(True), m.User.active.is_(True),
+                                       ~m.User.subject.like("pwa:%")).order_by(m.User.name).all()
+    return render_template("about.html", counts=counts, admins=admins)
+
+
+@ui.route("/settings/branding", methods=["GET", "POST"])
+def branding_settings():
+    if not g.user.is_admin:
+        abort(403, "Only service administrators can change the branding.")
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "remove-logo":
+            branding.remove_logo(g.db)
+            done("Logo removed.", "branding", object_type="system", label="logo", republish=False)
+            return redirect(url_for("ui.branding_settings"))
+        value, errors = branding.validate(request.form)
+        upload = request.files.get("logo")
+        if upload and upload.filename:
+            data = upload.read()
+            try:
+                branding.save_logo(g.db, branding.check_logo(data), data)
+            except ValueError as e:
+                errors.append(str(e))
+        if errors:
+            g.db.rollback()
+            for e in errors:
+                flash("Not saved: " + e, "error")
+            return render_template("branding.html", form=request.form, value=value), 400
+        before = branding.get(g.db, current_app.config["SITE_NAME"])
+        branding.save(g.db, value)
+        changed = sorted(k for k in value if before.get(k) != value[k])
+        done("Branding saved.", "branding", object_type="system", label="branding",
+             detail={"changed": changed + (["logo"] if upload and upload.filename else [])}, republish=False)
+        return redirect(url_for("ui.branding_settings"))
+    return render_template("branding.html", form=None, value=branding.get(g.db, current_app.config["SITE_NAME"]))
 
 
 # --------------------------------------------------------------------------

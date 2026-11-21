@@ -288,6 +288,13 @@ class MeshTask(Base):
     group_b = relationship("HostGroup", foreign_keys=[group_b_id])
 
 
+class Setting(Base):
+    """Small site-wide settings (branding), edited in the UI by administrators."""
+    __tablename__ = "settings"
+    key = Column(String(80), primary_key=True)
+    value = Column(JSON)
+
+
 class Publication(Base):
     """Result of the last attempt to publish each file."""
     __tablename__ = "publications"
