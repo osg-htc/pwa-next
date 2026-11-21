@@ -3,7 +3,9 @@
 PWA_DATABASE_URL   SQLAlchemy URL.  PostgreSQL in production.
 PWA_PUBLISH_DIR    Where the published files are written (served by Apache).
 PWA_PUBLIC_URL     Public URL of that directory, e.g. https://host/pub
-PWA_AUTH           "oidc"  identity comes from Apache mod_auth_openidc
+PWA_AUTH           "oidc"  identity comes from Apache: whoever it authenticated
+                           (REMOTE_USER).  Meant for mod_auth_openidc, but any
+                           Apache authentication module works.
                    "dev"   pick a user on a local page; never use in production
 PWA_ADMINS         Comma-separated subjects or e-mail addresses made service
                    administrators at their first login.

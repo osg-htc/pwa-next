@@ -15,6 +15,10 @@ def create_app(overrides=None):
     cfg = config.load(overrides)
     app = Flask(__name__)
     app.config.update(cfg)
+    if not cfg["SECRET_KEY"] and cfg["AUTH"] != "dev" and not cfg.get("TESTING"):
+        # A random key per process would log people out whenever Apache picks
+        # another worker, so refuse to start without one.
+        raise RuntimeError("PWA_SECRET_KEY is not set (see /etc/pwa/pwa.env)")
     app.secret_key = cfg["SECRET_KEY"] or secrets.token_hex(32)
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_HTTPONLY"] = True
