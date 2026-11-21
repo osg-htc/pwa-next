@@ -21,7 +21,7 @@ check() { if [ "$2" = "$3" ]; then echo "ok    $1"; else echo "FAIL  $1 (expecte
 
 echo "=== prepare the container (ansible-core, the RPM, the playbook laid out as in the site repository)"
 inside dnf -y -q install epel-release >/dev/null
-inside dnf -y -q install ansible-core procps-ng cronie >/dev/null
+inside dnf -y -q install ansible-core procps-ng cronie httpd-tools >/dev/null
 podman cp "$rpm" $name:/root/pwa-next.rpm
 inside dnf -y -q install /root/pwa-next.rpm >/dev/null
 inside mkdir -p /root/ansible/playbooks /root/ansible/configs/pwa
@@ -29,8 +29,9 @@ podman cp "$here/deploy/ansible/pwa.yaml" $name:/root/ansible/playbooks/pwa.yaml
 for f in pwa.env.j2 pwa.conf.j2 pwa-shadow-check.j2; do
     podman cp "$here/deploy/ansible/configs/pwa/$f" $name:/root/ansible/configs/pwa/$f
 done
-inside bash -c 'printf "[PWANext]\nlocalhost ansible_connection=local\n" > /root/ansible/inventory'
-play() { inside bash -c "cd /root/ansible/playbooks && ansible-playbook -i ../inventory pwa.yaml -e pwa_public_name=localhost -e pwa_admins=tester $* 2>&1"; }
+# Settings arrive as inventory host variables, as they will at the site.
+inside bash -c 'printf "[PWANext]\nlocalhost ansible_connection=local pwa_public_name=localhost pwa_admins=tester\n" > /root/ansible/inventory'
+play() { inside bash -c "cd /root/ansible/playbooks && ansible-playbook -i ../inventory pwa.yaml $* 2>&1"; }
 
 echo "=== first run: must stop and ask for the sign-in file"
 out=$(play || true)
@@ -59,6 +60,7 @@ check "published index, no login" "200" "$(code https://localhost/pub/config)"
 check "published index over plain HTTP" "200" "$(code http://localhost/pub/config)"
 check "application refuses anonymous visitors" "401" "$(code https://localhost/)"
 check "signed-in overview" "200" "$(code -u tester:testpw https://localhost/)"
+check "inventory variable made the first user an administrator" "t" "$(inside runuser -u postgres -- psql -At -d pwa -c "select is_admin from users where subject='tester'")"
 check "stylesheet without login" "200" "$(code https://localhost/static/pwa.css)"
 check "inventory timer is running and enabled" "active enabled" "$(inside systemctl is-active pwa-lookup-sync.timer) $(inside systemctl is-enabled pwa-lookup-sync.timer)"
 

@@ -9,22 +9,40 @@
 #                       chown root:apache /etc/httpd/pwa-htpasswd; chmod 640 /etc/httpd/pwa-htpasswd
 #   - sign-in "oidc":   put the CILogon client id and secret in /etc/httpd/pwa-oidc-client.conf
 #                       (two lines: OIDCClientID ..., OIDCClientSecret ...), mode 600 root
-# The TLS certificate comes from hostcert.yaml (the host must also be in WebServers).
+# The host is also in WebServers: package.yaml installs and starts httpd, hostcert.yaml installs the
+# certificate (it must exist in /atlas/data08/manage/hostcert first, or httpd cannot start), and
+# nftables opens 80/443 to the trusted networks only. Add the host to WebTrustAll to open it to all.
 - name: pSConfig Web Admin replacement (pwa-next)
   hosts: PWANext
   remote_user: root
   vars:
     - stashdir: ../configs/pwa
-    # Name people and toolkits use for this host.
-    - pwa_public_name: "{{ ansible_facts.fqdn }}"
-    # basic = password file (first tests, private network); oidc = CILogon.
-    - pwa_signin: basic
-    # Made service administrators at first sign-in: htpasswd names or CILogon subjects, comma-separated.
-    - pwa_admins: ""
     - pwa_signin_file: "{{ '/etc/httpd/pwa-htpasswd' if pwa_signin == 'basic' else '/etc/httpd/pwa-oidc-client.conf' }}"
-    # Production PWA to compare against every night (empty = no comparison).
-    - pwa_shadow_of: ""
   tasks:
+  # Per-host settings live in the inventory (host variables), not here:
+  #   pwa_public_name  name people and toolkits use for this host
+  #   pwa_signin       basic = password file (first tests); oidc = CILogon
+  #   pwa_admins       made service administrators at first sign-in: htpasswd names or
+  #                    CILogon subjects, comma-separated
+  #   pwa_shadow_of    production PWA to compare against every night (empty = none)
+  - name: defaults for settings the inventory does not give
+    set_fact:
+      pwa_public_name: "{{ pwa_public_name | default(ansible_facts.fqdn) }}"
+      pwa_signin: "{{ pwa_signin | default('basic') }}"
+      pwa_admins: "{{ pwa_admins | default('') }}"
+      pwa_shadow_of: "{{ pwa_shadow_of | default('') }}"
+
+  # Checked first, so that nothing below can leave httpd with a configuration it cannot start with.
+  - name: is the sign-in file in place
+    stat:
+      path: "{{ pwa_signin_file }}"
+    register: pwa_signin_stat
+
+  - name: stop here until the sign-in file exists (see the top of this playbook)
+    fail:
+      msg: "{{ pwa_signin_file }} is missing. Create it by hand, then run this playbook again."
+    when: not pwa_signin_stat.stat.exists
+
   - name: install pwa-next and what it runs on
     dnf:
       name:
@@ -103,16 +121,6 @@
       dest: /etc/httpd/conf.d/pwa.conf
       mode: '0644'
     notify: reload httpd
-
-  - name: is the sign-in file in place
-    stat:
-      path: "{{ pwa_signin_file }}"
-    register: pwa_signin_stat
-
-  - name: stop here until the sign-in file exists (see the top of this playbook)
-    fail:
-      msg: "{{ pwa_signin_file }} is missing; httpd would not start. Create it by hand, then run this playbook again."
-    when: not pwa_signin_stat.stat.exists
 
   - name: start httpd
     service:

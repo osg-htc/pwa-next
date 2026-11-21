@@ -14,18 +14,20 @@ The playbook was rehearsed in an EL9 container with systemd (`packaging/rehearse
 
 ## Other changes the new host needs in the Ansible repository
 
-1. **Inventory** (`inventory_public/03-agl.yaml`): a group `PWANext` with the new host (short and full name, as `PWAServer` has), and the host added to `WebServers` so `hostcert.yaml` installs its certificate and points `ssl.conf` at it.
-2. **Firewall** (`configs/nftables/aglt2-nft.j2`), next to the `PWAServer` block:
+Only the inventory (`inventory_public/03-agl.yaml`); the firewall template needs no change.
 
-   ```
-   {% if "PWANext" in group_names | string %}
-   # pwa-next: 80 redirects to https and serves /pub, 443 is the UI and /pub
-   add rule inet aglt2_filter input_chain tcp dport { 80, 443 } accept
-   {% endif %}
-   ```
-3. **Host variables**: `pwa_admins` (your sign-in name), and later `pwa_signin: oidc` and `pwa_shadow_of: psconfig.aglt2.org`.
-4. **Certificate**: `http-<nodename>.pem` and `http-<nodename>-key.pem` in `/atlas/data08/manage/hostcert/`, as for other web servers.
-5. **RPM**: `pwa-next-<version>.noarch.rpm` added to the UMATLAS repository on `umfs02` (`svn add`, `svn ci`, `sync_and_mirror.sh`).
+1. A group `PWANext` holding the host under its short and full names, with its settings as host variables (`pwa_public_name`, `pwa_admins`, later `pwa_signin: oidc` and `pwa_shadow_of`).
+2. `PWANext` as a child of `WebServers`. That brings three things that already exist for web servers:
+   - `package.yaml` installs and starts httpd and mod_ssl;
+   - `hostcert.yaml` installs the certificate and points `ssl.conf` at it;
+   - the firewall opens 80 and 443 to the trusted networks only (UM, MSU, home and CERN networks).
+3. `PWANext` as a child of `NoAFSclient`, like `PWAServer`.
+
+Before the host joins `WebServers`, its certificate must be in `/atlas/data08/manage/hostcert/` as `http-<full host name>.pem` and `http-<full host name>-key.pem`. Without it `ssl.conf` points at a file that does not exist and httpd cannot start.
+
+When toolkits and people outside the trusted networks need to reach the host, add it to `WebTrustAll`.
+
+The RPM goes into the UMATLAS repository on `umfs02` (`svn add`, `svn ci`, `sync_and_mirror.sh`).
 
 ## Nightly comparison with production (`pwa_shadow_of`)
 
