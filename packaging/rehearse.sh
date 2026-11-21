@@ -71,10 +71,10 @@ check "tests pass on SQLite" "0" "${PIPESTATUS[0]}"
 
 step "PostgreSQL $(rpm -q --qf '%{VERSION}' postgresql-server)"
 mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql
-su postgres -c "initdb -D /var/lib/pgsql/data -A peer >/dev/null"
+su postgres -c "initdb -D /var/lib/pgsql/data -A peer -E UTF8 --locale=C.UTF-8 >/dev/null"
 su postgres -c "pg_ctl -D /var/lib/pgsql/data -o \"-c listen_addresses=''\" -w start >/dev/null"
 su postgres -c "createuser pwa && createdb -O pwa pwa && createdb -O pwa pwa_test"
-su pwa -s /bin/bash -c "cd /tmp/t && PWA_TEST_DATABASE_URL=postgresql:///pwa_test python3 -m pytest -q -p no:cacheprovider tests" 2>&1 | tail -3
+su pwa -s /bin/bash -c "cd /tmp/t && PWA_TEST_DATABASE_URL=postgresql:///pwa_test python3 -m pytest -q -p no:cacheprovider --tb=line tests" 2>&1 | tail -6
 check "tests pass on PostgreSQL (socket, peer authentication)" "0" "${PIPESTATUS[0]}"
 
 step "configure"
@@ -114,6 +114,7 @@ check "signed-in overview" "200" "$(code -u tester:testpw $S/)"
 for page in meshes groups tests hosts archives access audit; do
     check "page /$page" "200" "$(code -u tester:testpw $S/$page)"
 done
+check "stylesheet served by Apache itself, no login" "200 text/css" "$(curl -k -s -o /dev/null -w '%{http_code} %{content_type}' $S/static/pwa.css)"
 check "first sign-in created an administrator" "t" \
     "$(su postgres -c "psql -At -d pwa -c \"select is_admin from users where subject='tester'\"")"
 # A change through the browser path: session cookie + CSRF token, repeated so

@@ -42,6 +42,7 @@ install -D -m 0640 packaging/pwa.env                   %{buildroot}%{_sysconfdir
 install -D -m 0644 packaging/pwa-lookup-sync.service   %{buildroot}%{_unitdir}/pwa-lookup-sync.service
 install -D -m 0644 packaging/pwa-lookup-sync.timer     %{buildroot}%{_unitdir}/pwa-lookup-sync.timer
 install -d -m 0755 %{buildroot}%{_sharedstatedir}/pwa/pub
+ln -s %{python3_sitelib}/pwa/web/static %{buildroot}%{_datadir}/%{name}/static
 
 %pre
 getent group pwa >/dev/null || groupadd -r pwa

@@ -25,4 +25,9 @@ def make_session_factory(engine):
 
 
 def create_all(engine):
+    if engine.dialect.name == "postgresql":
+        encoding = engine.execute("show server_encoding").scalar()
+        if encoding != "UTF8":
+            raise RuntimeError("the PostgreSQL database uses encoding %s; create it with "
+                               "createdb -E UTF8 -T template0 (names contain non-ASCII characters)" % encoding)
     Base.metadata.create_all(engine)
