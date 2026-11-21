@@ -92,7 +92,7 @@ fi
 
 step "Apache + mod_wsgi, password sign-in"
 cp /usr/share/doc/pwa-next/apache-pwa.conf /etc/httpd/conf.d/pwa.conf
-sed -i '/option B/,$ s/^#\(<Location\|    Auth\|    Require\|<\/Location\)/\1/' /etc/httpd/conf.d/pwa.conf
+sed -i '/option B/,/end of sign-in/ s/^#\(<Location\|    Auth\|    Require\|<\/Location\)/\1/' /etc/httpd/conf.d/pwa.conf
 htpasswd -B -b -c /etc/httpd/pwa-htpasswd tester testpw 2>/dev/null
 chown root:apache /etc/httpd/pwa-htpasswd && chmod 640 /etc/httpd/pwa-htpasswd
 sed -i 's/^Listen 80$/Listen 127.0.0.1:18080/' /etc/httpd/conf/httpd.conf
@@ -100,7 +100,7 @@ sed -i -e 's/^Listen 443 https/Listen 127.0.0.1:18443 https/' -e 's/_default_:44
 echo "ServerName localhost" > /etc/httpd/conf.d/servername.conf
 /usr/libexec/httpd-ssl-gencerts
 mkdir -p /run/httpd
-check "configuration is valid" "Syntax OK" "$(httpd -t 2>&1 | tail -1)"
+check "configuration is valid, no warnings" "Syntax OK" "$(httpd -t 2>&1 | tr '\n' ' ' | sed 's/ $//')"
 httpd -k start
 code() { curl -k -s -o /dev/null -w '%{http_code}' --retry 5 --retry-connrefused --retry-delay 1 "$@"; }
 S=https://localhost:18443
@@ -136,7 +136,7 @@ check "unknown host feed" "404" "$(code $S/pub/auto/no-such-host.example.org)"
 
 step "CILogon variant of the configuration parses"
 sed -e '/option A/,/option B/ s/^#\(OIDC\|<Location\|    Auth\|    Require\|<\/Location\)/\1/' \
-    -e '/option B/,$ s/^\(<Location\|    Auth\|    Require\|<\/Location\)/#\1/' \
+    -e '/option B/,/end of sign-in/ s/^\(<Location\|    Auth\|    Require\|<\/Location\)/#\1/' \
     /etc/httpd/conf.d/pwa.conf > /tmp/pwa-oidc.conf
 cp /etc/httpd/conf.d/pwa.conf /tmp/pwa-basic.conf && cp /tmp/pwa-oidc.conf /etc/httpd/conf.d/pwa.conf
 check "mod_auth_openidc directives accepted" "Syntax OK" "$(httpd -t 2>&1 | tail -1)"
