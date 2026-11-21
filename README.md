@@ -32,6 +32,10 @@ python -m pwa serve [--port N]          development server
 
 Settings are environment variables, or `KEY=value` lines in the file named by `PWA_CONFIG`; `pwa/config.py` lists them.
 
+## Licence
+
+Apache License 2.0; see [LICENSE](LICENSE). The bundled files below keep their own licences.
+
 ## Bundled third-party files
 
 - `pwa/specs/tests/*.json`, `pwa/specs/archivers/*.json`: `spec-jsonschema.json` files from perfsonar/pscheduler, branch 5.3.0 (commit a66acdc6), Apache License 2.0.
