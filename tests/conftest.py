@@ -2,6 +2,7 @@ import os
 import sys
 
 import pytest
+from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -11,7 +12,18 @@ from pwa.web import create_app, publish_now  # noqa: E402
 
 @pytest.fixture()
 def app(tmp_path):
-    app = create_app({"AUTH": "dev", "DATABASE_URL": "sqlite:///%s" % (tmp_path / "t.db"),
+    # PWA_TEST_DATABASE_URL runs the suite against another database (PostgreSQL);
+    # every table in it is dropped and re-created for each test.
+    url = os.environ.get("PWA_TEST_DATABASE_URL")
+    if url:
+        from pwa import db as dbmod
+        engine = dbmod.make_engine(url)
+        if url.startswith("postgresql"):      # a session left over from a failed test would block the reset
+            engine.execute("select pg_terminate_backend(pid) from pg_stat_activity "
+                           "where datname = current_database() and pid <> pg_backend_pid()")
+        m.Base.metadata.drop_all(engine)
+        engine.dispose()
+    app = create_app({"AUTH": "dev", "DATABASE_URL": url or "sqlite:///%s" % (tmp_path / "t.db"),
                       "PUBLISH_DIR": str(tmp_path / "pub"), "PUBLIC_URL": "https://ps.example.org/pub",
                       "SECRET_KEY": "test", "TESTING": True})
     Session = app.extensions["pwa_session"]
@@ -40,13 +52,16 @@ def app(tmp_path):
                "users": {k: v.id for k, v in people.items()}}
     Session.remove()
     yield app
+    Session.remove()
+    app.extensions["pwa_engine"].dispose()
 
 
 @pytest.fixture()
 def db(app):
-    Session = app.extensions["pwa_session"]
-    yield Session()
-    Session.remove()
+    # A session of its own: the application closes the shared one after every request.
+    session = sessionmaker(bind=app.extensions["pwa_engine"], expire_on_commit=False)()
+    yield session
+    session.close()
 
 
 class Browser:

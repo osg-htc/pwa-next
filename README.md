@@ -18,6 +18,13 @@ export PWA_CONFIG=$PWD/dev.env          # development settings: SQLite, pick-a-u
 .venv/bin/python -m pwa serve           # http://127.0.0.1:8085
 ```
 
+To run the tests against PostgreSQL instead of SQLite (every table in that database is dropped and re-created for each test, so give it a database of its own):
+
+```
+.venv/bin/pip install psycopg2-binary
+PWA_TEST_DATABASE_URL=postgresql://USER:PASSWORD@HOST/pwa_test .venv/bin/python -m pytest -q
+```
+
 `dev.env` uses `PWA_AUTH=dev`, which lets anyone sign in as anyone. It is for a loopback address only.
 
 ## Commands

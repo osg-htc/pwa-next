@@ -112,12 +112,13 @@ Checked on 2026-11-20 against the production OSG/WLCG PWA (read-only):
 - All 32 published mesh files pass `psconfig validate` from perfSONAR 5.2.6. Production PWA passes 31; the new publisher withholds the one task with an invalid test instead of publishing it.
 - 43 automated tests cover forms, translation, publishing, membership, cascades, the web workflows and permissions.
 - A dry run of the Lookup Service sync matched 1,299 existing inventory hosts by name.
+- On PostgreSQL 15: the test suite passes, and the production import, a full publish (1.4 s) and a live Lookup Service sync all ran, with published output still matching PWA.
 
 ## Not done yet
 
 | Item | Note |
 |---|---|
-| Deployment | The Apache configuration in `deploy/` is a sketch and has not been run. No RPM, no PostgreSQL run yet (SQLAlchemy only; tests use SQLite). |
+| Deployment | The Apache configuration in `deploy/` is a sketch and has not been run. No RPM. |
 | CILogon | Client registration, the claim names, and which eduGAIN identity providers CILogon admits all need confirming against a real login. |
 | Linking the existing PWA accounts | Implemented (see docs/MIGRATION.md) but not yet exercised with a real CILogon login. In the OSG/WLCG instance only 6 of the 51 people who own something have a CILogon identity on record; the rest use local passwords and will need an administrator's one-click confirmation at first login. |
 | Scripted access | No REST API or API tokens yet. PWA's admin API is not reproduced. |

@@ -25,6 +25,7 @@ def create_app(overrides=None):
     db.create_all(engine)
     Session = db.make_session_factory(engine)
     app.extensions["pwa_session"] = Session
+    app.extensions["pwa_engine"] = engine
 
     @app.teardown_appcontext
     def _cleanup(exc):
