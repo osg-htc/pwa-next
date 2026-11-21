@@ -13,8 +13,8 @@ from . import specforms
 
 AVAILABILITY = {
     "standard": "Installed on every perfSONAR 5.2 testpoint and toolkit.",
-    "extras": "In pScheduler's optional 'extras' bundle: hosts have it only if their site installed it.",
-    "snmp": "In pScheduler's optional 'snmp' bundle: hosts have it only if their site installed it.",
+    "extras": "In pScheduler 5.2's optional 'extras' bundle, so not part of a standard testpoint install. Some hosts have it anyway (older releases, or sites that added it): check how many advertise it.",
+    "snmp": "In pScheduler's optional 'snmp' bundle, so only on hosts whose site installed it.",
     "unreleased": "In the pScheduler source but not released.",
     "new": "Arrives with perfSONAR 5.3.",
     "varies": "Built only on some platforms.",

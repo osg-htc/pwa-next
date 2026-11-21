@@ -119,7 +119,7 @@
   "summary": "A real file transfer between storage endpoints, including disk read and write speed.",
   "what": "Copies a file from a source URL to a destination URL with curl or Globus (GridFTP) and reports throughput.",
   "why": "Measuring end-to-end transfer performance including storage, which memory-to-memory throughput tests leave out.",
-  "mesh": "Its source and destination are file URLs, not hosts, so it cannot be used in a task here. Optional 'extras' bundle."
+  "mesh": "Its source and destination are file URLs, not hosts, so it cannot be used in a task here. In 5.2 it is in the optional 'extras' bundle, though many older hosts still advertise it."
  },
  "s3throughput": {
   "title": "S3 storage throughput",
