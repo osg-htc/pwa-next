@@ -7,7 +7,7 @@
 <p class="lead">
   {% if host.source == "lookup" %}From the Lookup Service; last listed {{ host.last_seen|ago }}.{% else %}Added by hand.{% endif %}
   {% if host.capabilities %}Offers: {{ host.capabilities|join(", ") }}.{% endif %}
-  Its tests: <a href="{{ public_url }}/auto/{{ host.hostname }}"><code>{{ public_url }}/auto/{{ host.hostname }}</code></a>
+  Its tests: <a href="{{ url_for('pub.auto', hostname=host.hostname) }}"><code>{{ public_url }}/auto/{{ host.hostname }}</code></a>
 </p>
 
 <section class="card">

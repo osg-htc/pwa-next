@@ -4,7 +4,7 @@
 {% block main %}
 <p class="crumbs"><a href="{{ url_for('ui.meshes') }}">Meshes</a> ›</p>
 <h1>{{ mesh.name }}</h1>
-<p class="lead">Published at <a href="{{ public_url }}/config/{{ mesh.slug }}"><code>{{ public_url }}/config/{{ mesh.slug }}</code></a>
+<p class="lead">Published at <a href="{{ url_for('pub.config', slug=mesh.slug) }}"><code>{{ public_url }}/config/{{ mesh.slug }}</code></a>
   {% if publication and publication.published %}— last changed {{ publication.published|ago }}{% endif %}.
   <a href="{{ url_for('ui.mesh_preview', ident=mesh.id) }}">Preview the JSON</a></p>
 {% if problems %}<div class="flash error"><strong>This mesh is not being published;</strong> the previous version stays live. <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>{% endif %}

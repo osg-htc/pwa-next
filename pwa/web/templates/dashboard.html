@@ -30,10 +30,15 @@
   {% set nothing = not (mesh_problems or stale or esmond_use or (placeholders and user.is_admin)) %}
   {% if nothing %}<p class="quiet">Nothing. Everything published cleanly.</p>{% endif %}
   <ul class="attention">
-    {% for p in mesh_problems %}
+    {% for p, mesh, withheld in mesh_problems %}
     <li><span class="pill {{ 'warn' if p.ok else 'bad' }}">{{ "task withheld" if p.ok else "not published" }}</span>
-      <a href="{{ public_url }}/{{ p.path }}">{{ p.path }}</a>
-      <pre>{{ p.message }}</pre></li>
+      {% if mesh %}Mesh <a href="{{ url_for('ui.mesh', ident=mesh.id) }}">{{ mesh.name }}</a>{% else %}{{ p.path }}{% endif %}
+      {% if withheld %}
+      <ul>{% for task, errors in withheld %}
+        <li>task “{{ task.name }}” is not published: its test <a href="{{ url_for('ui.test', ident=task.test.id) }}">{{ task.test.name }}</a> would be rejected by pScheduler ({{ errors|join("; ") }}). Fix the test and the task is published again.</li>
+      {% endfor %}</ul>
+      {% elif not p.ok %}<pre>{{ p.message }}</pre>{% endif %}
+    </li>
     {% endfor %}
     {% if host_problem_count %}<li><span class="pill warn">per-host feeds</span> {{ host_problem_count }} per-host feed(s) are missing the withheld task(s) above.</li>{% endif %}
     {% if stale %}

@@ -10,7 +10,7 @@
   {% set on = x.tasks|selectattr("enabled")|list|length %}
   <tr>
     <td><a href="{{ url_for('ui.mesh', ident=x.id) }}">{{ x.name }}</a></td>
-    <td><a class="quiet" href="{{ public_url }}/config/{{ x.slug }}">config/{{ x.slug }}</a></td>
+    <td><a class="quiet" href="{{ url_for('pub.config', slug=x.slug) }}">config/{{ x.slug }}</a></td>
     <td>{{ on }}{% if x.tasks|length > on %} <span class="quiet">+ {{ x.tasks|length - on }} disabled</span>{% endif %}</td>
     <td class="quiet">{{ p.published|ago if p else "not published yet" }}</td>
     <td>{% if p and not p.ok %}<span class="pill bad">not published</span>{% elif p and p.message %}<span class="pill warn">task withheld</span>{% endif %}</td>

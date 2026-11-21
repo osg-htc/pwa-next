@@ -106,7 +106,12 @@ def dashboard():
              if member_ids else [])
     problems = db.query(m.Publication).filter(or_(m.Publication.ok.is_(False),
                                                   m.Publication.message != "")).all()
-    mesh_problems = [p for p in problems if p.path.startswith("config/")]
+    mesh_problems = []
+    for p in problems:
+        if p.path.startswith("config/"):
+            mesh = db.query(m.Mesh).filter_by(slug=p.path[len("config/"):]).one_or_none()
+            withheld = publisher.mesh_status(db, mesh)[1] if mesh else []
+            mesh_problems.append((p, mesh, withheld))
     esmond = [a for a in db.query(m.Archive) if a.archiver == "esmond"]
     esmond_use = [(a, services.archive_usage(db, a)) for a in esmond]
     used_tests = {row[0] for row in db.query(m.MeshTask.test_id).distinct()}

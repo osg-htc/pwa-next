@@ -132,3 +132,18 @@ def test_mesh_copy_starts_disabled(app, as_user, db):
     copy = db.query(m.Mesh).filter_by(slug="demo-copy").one()
     assert [t.enabled for t in copy.tasks] == [False]
     assert published(app, "config/demo-copy")["tasks"] == {}
+
+
+def test_needs_attention_links_to_the_mesh_and_the_test(app, as_user, db):
+    mesh = db.get(m.Mesh, app.ids["mesh"])
+    bad = m.Test(name="Bad latency", type="latency", spec={"bucket-width": 1}, repeat="PT1M")
+    mesh.tasks.append(m.MeshTask(position=1, name="Bad task", test=bad, group_a=db.get(m.HostGroup, app.ids["g1"])))
+    db.commit()
+    b = as_user("admin")
+    b.post("/publish")
+    page = b.get("/").data.decode()
+    assert 'href="/meshes/%d"' % app.ids["mesh"] in page and 'href="/tests/%d"' % bad.id in page
+    assert "Bad task" in page and "bucket-width" in page
+    # published files are linked on this server's own /pub path, whatever PWA_PUBLIC_URL says
+    assert 'href="/pub/config/demo"' in b.get("/meshes").data.decode()
+    assert b.get("/pub/config/demo").status_code == 200
