@@ -36,7 +36,7 @@ def main():
     ap.add_argument("--always", default="", help="comma-separated hostname suffixes always included")
     a = ap.parse_args()
 
-    load = lambda n: json.load(open(os.path.join(a.export_dir, n + ".json")))
+    load = lambda n: json.load(open(os.path.join(a.export_dir, n + ".json"), encoding="utf-8"))
     configs, groups, hosts = load("configs"), load("hostgroups"), load("hosts")
     by_id = {h["_id"]["$oid"]: h["hostname"] for h in hosts}
     members = sorted({by_id[m["$oid"]] for g in groups for m in g.get("hosts", []) if m["$oid"] in by_id})

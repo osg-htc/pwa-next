@@ -38,7 +38,7 @@ def main():
                       "idp": idp, "admin": admin, "active": bool(active)})
     path = os.path.join(out_dir, "users.json")
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
         json.dump(users, f, indent=1)
     print("%d accounts written to %s (%d with a federated identity, %d administrators)" % (
         len(users), path, sum(1 for u in users if u["subs"]), sum(1 for u in users if u["admin"])))

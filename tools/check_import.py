@@ -39,7 +39,7 @@ def main():
             print("MISSING mesh", slug)
             different += 1
             continue
-        diffs = compat.differences(json.load(open(path)), builder.mesh_template(mesh))
+        diffs = compat.differences(json.load(open(path, encoding="utf-8")), builder.mesh_template(mesh))
         same, different = report_one("config/" + slug, diffs, same, different, verbose)
     for path in sorted(glob.glob(os.path.join(baseline, "auto", "*.json"))):
         name = os.path.basename(path)[:-5]
@@ -48,7 +48,7 @@ def main():
             print("MISSING host", name)
             different += 1
             continue
-        diffs = compat.differences(json.load(open(path)),
+        diffs = compat.differences(json.load(open(path, encoding="utf-8")),
                                    builder.host_template(host, by_host.get(host.id, [])))
         same, different = report_one("auto/" + name, diffs, same, different, verbose)
     print("same: %d   different: %d" % (same, different))

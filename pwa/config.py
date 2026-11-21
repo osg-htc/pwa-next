@@ -20,7 +20,7 @@ import os
 def _read(path):
     if not path or not os.path.exists(path):
         return None
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return f.read().strip() or None
 
 
@@ -28,7 +28,7 @@ def load(overrides=None):
     path = os.environ.get("PWA_CONFIG")
     values = {}
     if path and os.path.exists(path):
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:

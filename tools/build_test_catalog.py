@@ -173,7 +173,7 @@ def main():
         catalog["tests"][name] = entry
         print("%-13s %-17s tools=%s %s" % (name, entry["scheduling_class"], ",".join(entry["tools"]),
                                            entry.get("error", "%d options checked" % len(entry.get("options", {})))))
-    with open(a.out, "w") as f:
+    with open(a.out, "w", encoding="utf-8") as f:
         json.dump(catalog, f, indent=1, sort_keys=True)
         f.write("\n")
     print("wrote", a.out)

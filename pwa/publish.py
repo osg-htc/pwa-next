@@ -30,7 +30,7 @@ _SCHEMA = None
 def psconfig_schema():
     global _SCHEMA
     if _SCHEMA is None:
-        with open(os.path.join(specforms.SPEC_DIR, "psconfig-schema.json")) as f:
+        with open(os.path.join(specforms.SPEC_DIR, "psconfig-schema.json"), encoding="utf-8") as f:
             _SCHEMA = jsonschema.Draft4Validator(json.load(f))
     return _SCHEMA
 

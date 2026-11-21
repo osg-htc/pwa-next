@@ -106,7 +106,7 @@ class SpecError(ValueError):
 @functools.lru_cache(maxsize=None)
 def _load(kind, name):
     path = os.path.join(SPEC_DIR, kind, name + ".json")
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
