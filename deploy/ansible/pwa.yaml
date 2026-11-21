@@ -1,0 +1,151 @@
+---
+# pwa-next: replacement for the OSG/WLCG pSConfig Web Admin (https://github.com/osg-htc/pwa-next).
+# Apache + mod_wsgi + PostgreSQL on one host. The RPM comes from the UMATLAS repo.
+#
+# Not in main.yaml while the service is under test: run it with "run_ansible.sh pwa".
+#
+# By hand, once per host (nothing secret is kept in SVN):
+#   - sign-in "basic":  htpasswd -B -c /etc/httpd/pwa-htpasswd <name>
+#                       chown root:apache /etc/httpd/pwa-htpasswd; chmod 640 /etc/httpd/pwa-htpasswd
+#   - sign-in "oidc":   put the CILogon client id and secret in /etc/httpd/pwa-oidc-client.conf
+#                       (two lines: OIDCClientID ..., OIDCClientSecret ...), mode 600 root
+# The TLS certificate comes from hostcert.yaml (the host must also be in WebServers).
+- name: pSConfig Web Admin replacement (pwa-next)
+  hosts: PWANext
+  remote_user: root
+  vars:
+    - stashdir: ../configs/pwa
+    # Name people and toolkits use for this host.
+    - pwa_public_name: "{{ ansible_facts.fqdn }}"
+    # basic = password file (first tests, private network); oidc = CILogon.
+    - pwa_signin: basic
+    # Made service administrators at first sign-in: htpasswd names or CILogon subjects, comma-separated.
+    - pwa_admins: ""
+    # Production PWA to compare against every night (empty = no comparison).
+    - pwa_shadow_of: ""
+  tasks:
+  - name: install pwa-next and what it runs on
+    dnf:
+      name:
+        - pwa-next
+        - postgresql-server
+        - mod_ssl
+        - mod_auth_openidc
+        - httpd-tools
+      state: present
+
+  - name: initialise PostgreSQL (UTF-8)
+    command: postgresql-setup --initdb
+    args:
+      creates: /var/lib/pgsql/data/PG_VERSION
+    environment:
+      PGSETUP_INITDB_OPTIONS: "-E UTF8 --locale=C.UTF-8"
+
+  - name: start PostgreSQL
+    service:
+      name: postgresql
+      state: started
+      enabled: true
+
+  # The application connects over the local socket as the "pwa" system account
+  # (peer authentication, the PostgreSQL default), so there is no database password.
+  - name: PostgreSQL role and database for pwa
+    shell: |
+      cd /tmp
+      runuser -u postgres -- psql -Atc "select 1 from pg_roles where rolname='pwa'" | grep -q 1 \
+        || { runuser -u postgres -- createuser pwa && echo CREATED; }
+      runuser -u postgres -- psql -Atc "select 1 from pg_database where datname='pwa'" | grep -q 1 \
+        || { runuser -u postgres -- createdb -O pwa -E UTF8 -T template0 pwa && echo CREATED; }
+    register: pwa_db
+    changed_when: '"CREATED" in pwa_db.stdout'
+
+  - name: session key, generated on the host and never stored in SVN
+    shell: |
+      umask 027
+      python3 -c 'import secrets; print(secrets.token_hex(32))' > /etc/pwa/secret.key
+      chgrp pwa /etc/pwa/secret.key
+    args:
+      creates: /etc/pwa/secret.key
+
+  - name: passphrase for the sign-in module's own cookies
+    shell: |
+      umask 077
+      python3 -c 'import secrets; print(secrets.token_hex(32))' > /etc/httpd/pwa-oidc-passphrase
+    args:
+      creates: /etc/httpd/pwa-oidc-passphrase
+
+  - name: pwa settings
+    template:
+      src: '{{ stashdir }}/pwa.env.j2'
+      dest: /etc/pwa/pwa.env
+      owner: root
+      group: pwa
+      mode: '0640'
+    notify: reload httpd
+
+  - name: create or update the tables
+    command: runuser -u pwa -- env PWA_CONFIG=/etc/pwa/pwa.env pwa init-db
+    args:
+      chdir: /tmp
+    changed_when: false
+
+  # Also writes the (possibly empty) index, so /pub/config answers from the start.
+  - name: publish
+    command: runuser -u pwa -- env PWA_CONFIG=/etc/pwa/pwa.env pwa publish
+    args:
+      chdir: /tmp
+    changed_when: false
+
+  - name: Apache configuration for pwa
+    template:
+      src: '{{ stashdir }}/pwa.conf.j2'
+      dest: /etc/httpd/conf.d/pwa.conf
+      mode: '0644'
+    notify: reload httpd
+
+  - name: is the sign-in file in place
+    stat:
+      path: "{{ '/etc/httpd/pwa-htpasswd' if pwa_signin == 'basic' else '/etc/httpd/pwa-oidc-client.conf' }}"
+    register: pwa_signin_file
+
+  - name: stop here until the sign-in file exists (see the top of this playbook)
+    fail:
+      msg: "{{ pwa_signin_file.invocation.module_args.path }} is missing; httpd would not start. Create it by hand, then run this playbook again."
+    when: not pwa_signin_file.stat.exists
+
+  - name: start httpd
+    service:
+      name: httpd
+      state: started
+      enabled: true
+
+  - name: hourly host inventory refresh from the Lookup Service
+    systemd:
+      name: pwa-lookup-sync.timer
+      state: started
+      enabled: true
+
+  # Nightly: import a fresh copy of the production PWA's data into a scratch
+  # database, publish, and compare with what production serves. CheckMK shows it
+  # as job pwa_shadow; details in /var/log/pwa_shadow.log. Needs the read-only
+  # export key described in configs/pwa/README.md.
+  - name: shadow comparison script
+    template:
+      src: '{{ stashdir }}/pwa-shadow-check.j2'
+      dest: /usr/local/sbin/pwa-shadow-check
+      mode: '0750'
+    when: pwa_shadow_of | length > 0
+
+  - name: nightly shadow comparison against the production PWA
+    copy:
+      dest: /etc/cron.d/pwa_shadow.cron
+      mode: '0644'
+      content: |
+        17 3 * * * root mk-job pwa_shadow /usr/local/sbin/pwa-shadow-check > /var/log/pwa_shadow.log 2>&1
+    when: pwa_shadow_of | length > 0
+
+  handlers:
+  - name: reload httpd
+    service:
+      name: httpd
+      state: reloaded

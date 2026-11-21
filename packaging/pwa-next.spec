@@ -43,6 +43,9 @@ install -D -m 0644 packaging/pwa-lookup-sync.service   %{buildroot}%{_unitdir}/p
 install -D -m 0644 packaging/pwa-lookup-sync.timer     %{buildroot}%{_unitdir}/pwa-lookup-sync.timer
 install -d -m 0755 %{buildroot}%{_sharedstatedir}/pwa/pub
 ln -s %{python3_sitelib}/pwa/web/static %{buildroot}%{_datadir}/%{name}/static
+install -D -m 0755 tools/check_import.py   %{buildroot}%{_datadir}/%{name}/tools/check_import.py
+install -D -m 0755 tools/fetch_baseline.py %{buildroot}%{_datadir}/%{name}/tools/fetch_baseline.py
+install -D -m 0755 tools/export_auth_users.py %{buildroot}%{_datadir}/%{name}/tools/export_auth_users.py
 
 %pre
 getent group pwa >/dev/null || groupadd -r pwa

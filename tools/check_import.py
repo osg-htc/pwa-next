@@ -11,7 +11,9 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+_checkout = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+if os.path.isdir(os.path.join(_checkout, "pwa")):     # run from a source checkout
+    sys.path.insert(0, _checkout)
 
 from pwa import compat, db, importer, models as m, publish   # noqa: E402
 

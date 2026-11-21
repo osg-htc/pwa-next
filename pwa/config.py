@@ -10,9 +10,18 @@ PWA_AUTH           "oidc"  identity comes from Apache: whoever it authenticated
 PWA_ADMINS         Comma-separated subjects or e-mail addresses made service
                    administrators at their first login.
 PWA_SECRET_KEY     Signs the browser session cookie.
+PWA_SECRET_KEY_FILE  Alternatively, a file holding that key (keeps it out of
+                   configuration management).
 PWA_LOOKUP_URL     Lookup Service search endpoint for `pwa lookup-sync`.
 """
 import os
+
+
+def _read(path):
+    if not path or not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return f.read().strip() or None
 
 
 def load(overrides=None):
@@ -33,7 +42,7 @@ def load(overrides=None):
         "PUBLIC_URL": get("PWA_PUBLIC_URL", "http://127.0.0.1:8085/pub"),
         "AUTH": get("PWA_AUTH", "oidc"),
         "ADMINS": [x.strip() for x in (get("PWA_ADMINS", "") or "").split(",") if x.strip()],
-        "SECRET_KEY": get("PWA_SECRET_KEY"),
+        "SECRET_KEY": get("PWA_SECRET_KEY") or _read(get("PWA_SECRET_KEY_FILE")),
         # WSGI variables mod_auth_openidc sets (OIDCRemoteUserClaim sub).
         "OIDC_SUBJECT": get("PWA_OIDC_SUBJECT", "REMOTE_USER"),
         "OIDC_NAME": get("PWA_OIDC_NAME", "OIDC_CLAIM_name"),

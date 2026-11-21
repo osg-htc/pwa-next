@@ -1,0 +1,17 @@
+#!/bin/bash
+# Managed by Ansible (playbooks/pwa.yaml).
+#
+# Compare pwa-next with the production PWA at {{ pwa_shadow_of }}:
+#   1. fetch a fresh export of production's data (read-only, forced-command key);
+#   2. fetch what production publishes right now;
+#   3. import the export into a scratch database, publish, compare task by task.
+# Exit status 0 only when everything matches. Changes nothing on either host.
+set -euo pipefail
+work=/var/lib/pwa-shadow
+tools=/usr/share/pwa-next/tools
+rm -rf "$work/new"
+install -d -m 700 "$work/new"
+ssh -o BatchMode=yes -i /root/.ssh/pwa_shadow_export root@{{ pwa_shadow_of }} export | tar -xz -C "$work/new"
+python3 $tools/fetch_baseline.py "$work/new" "$work/new/baseline" --base https://{{ pwa_shadow_of }}/pub --auto 40
+python3 $tools/check_import.py "$work/new" "$work/new/baseline"
+rm -rf "$work/last" && mv "$work/new" "$work/last"
