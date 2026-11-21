@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.tests') }}">Tests</a> › <a href="{{ url_for('ui.test_types') }}">Test types</a> ›</p>
+<h1>{{ title }} <code class="quiet">{{ name }}</code></h1>
+<p class="lead">{{ g.summary or m.description or "" }}</p>
+
+<section class="card">
+  {% if g.what %}<h2>What it does</h2><p>{{ g.what }}</p>{% endif %}
+  {% if g.why %}<h2>Why use it</h2><p>{{ g.why }}</p>{% endif %}
+  {% if g.mesh %}<h2>In meshes</h2><p>{{ g.mesh }}</p>{% endif %}
+  <table class="plain">
+    <tr><td class="quiet">Runs</td><td>{{ ADDRESSING.get(g.addressing or "pair") }}</td></tr>
+    {% if m.scheduling_class %}<tr><td class="quiet">Scheduling</td><td>{{ SCHEDULING.get(m.scheduling_class, m.scheduling_class) }}</td></tr>{% endif %}
+    <tr><td class="quiet">Installed</td><td>{{ AVAILABILITY.get(g.availability or "standard") }}</td></tr>
+    <tr><td class="quiet">Hosts that have it</td><td>{{ have_used|length }} of the {{ described_used }} hosts in host groups here, and {{ have }} of {{ described }} known hosts, advertise it in the Lookup Service.</td></tr>
+    {% if m.description %}<tr><td class="quiet">pScheduler calls it</td><td>“{{ m.description }}”</td></tr>{% endif %}
+  </table>
+  {% if access.can("create", "test") and g.addressing != "none" %}<p><a class="button" href="{{ url_for('ui.test_new', type=name) }}">Create a {{ title|lower }} test</a></p>{% endif %}
+</section>
+
+{% if tools %}
+<section class="card">
+  <h2>Tools</h2>
+  <p class="help">pScheduler runs the test with the first tool in this order that both hosts have and that accepts every option set in the test. A test can also name its tools.</p>
+  <table class="plain">{% for t in tools %}<tr><td><b>{{ t }}</b>{% if loop.first %} <span class="pill">first choice</span>{% endif %}</td><td>{{ tool_description(t) }}</td></tr>{% endfor %}</table>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Options and the tools that accept them</h2>
+  {% if m.options is defined and m.options %}
+  <p class="help">Measured by asking pScheduler 5.2.6 which tools could run the test with each option set{% if source.built %} ({{ source.built }}){% endif %}. A ✓ means the tool accepts the option; a blank means pScheduler will not pick that tool for a test using it.</p>
+  <div class="scroll"><table class="matrix">
+    <thead><tr><th>Option</th>{% for t in tools %}<th>{{ t }}</th>{% endfor %}</tr></thead>
+    {% for f in fields %}
+    {% set ok = support[f.name] %}
+    <tr {% if ok is not none and ok|length < tools|length %}class="partial"{% endif %}>
+      <td><b>{{ f.title }}</b> <code class="quiet">{{ f.name }}</code><br><span class="help">{{ f.help }}</span>
+        {% if by_value[f.name] %}<br><span class="help">By value: {% for v, ts in by_value[f.name].items() %}<code>{{ v }}</code> → {{ ts|join(", ") or "none" }}{% if not loop.last %}; {% endif %}{% endfor %}</span>{% endif %}</td>
+      {% for t in tools %}<td class="mark">{% if ok is none %}<span class="quiet" title="Not checked">?</span>{% elif t in ok %}✓{% endif %}</td>{% endfor %}
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% if m.unchecked %}<p class="quiet">Not checked automatically: {{ m.unchecked|join(", ") }}.</p>{% endif %}
+  {% else %}
+  <p class="help">The reference pScheduler (5.2.6 testpoint) does not have this test type, so tool support could not be measured.</p>
+  <table class="plain">{% for f in fields %}<tr><td><b>{{ f.title }}</b> <code class="quiet">{{ f.name }}</code></td><td class="help">{{ f.help }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Tests of this type here</h2>
+  {% if tests_here %}<p>{% for t in tests_here %}<a href="{{ url_for('ui.test', ident=t.id) }}">{{ t.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% else %}<p class="quiet">None.</p>{% endif %}
+  {% if have_used and have_used|length <= 60 %}<details><summary>Hosts in host groups here that advertise it ({{ have_used|length }})</summary><p>{% for h in have_used %}<a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p></details>{% endif %}
+</section>
+{% endblock %}

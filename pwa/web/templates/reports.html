@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "macros.html" import picker with context %}
+{% block title %}Reports{% endblock %}
+{% block main %}
+<h1>Reports</h1>
+<p class="lead">What the current configuration adds up to. Everything here is worked out from the enabled tasks; nothing is measured on the hosts themselves.</p>
+
+<section class="card">
+  <h2>What is tested between two hosts?</h2>
+  <form method="get" action="{{ url_for('ui.reports_between') }}" class="inline">
+    {{ picker("host", "a", placeholder="First host…") }}
+    {{ picker("host", "b", placeholder="Second host (optional)…") }}
+    <button class="secondary">Look up</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Meshes</h2>
+  <table>
+    <thead><tr><th>Mesh</th><th>Tasks</th><th>Hosts</th><th title="Ordered host pairs, or hosts for single-host tests">Measurements</th><th>Scheduled runs per day</th><th>Continuous streams</th><th title="Sum over all runs of the throughput test duration">Throughput test hours per day</th></tr></thead>
+    {% for s in meshes %}
+    <tr><td><a href="{{ url_for('ui.mesh', ident=s.mesh.id) }}">{{ s.mesh.name }}</a></td><td>{{ s.tasks }}</td><td>{{ s.hosts }}</td>
+      <td>{{ "{:,}".format(s.measurements) }}</td><td>{{ "{:,.0f}".format(s.runs_per_day) }}</td><td>{{ "{:,}".format(s.streams) }}</td><td>{{ "{:,.1f}".format(s.throughput_hours) }}</td></tr>
+    {% else %}<tr><td colspan="7" class="quiet">No enabled tasks.</td></tr>{% endfor %}
+  </table>
+</section>
+
+<section class="card">
+  <h2>Busiest hosts</h2>
+  <p class="help">Throughput tests are exclusive: a host runs one at a time. The share of the day a host spends in them (as sender or receiver) is the best single measure of load; above about a third of the day, scheduled runs start to be skipped. Counts include every mesh. {{ hosts_in_use }} hosts take part in at least one enabled task.</p>
+  <table>
+    <thead><tr><th>Host</th><th>Meshes</th><th>Tasks</th><th>Partners</th><th>Throughput runs per day</th><th>Share of day in throughput tests</th><th>Continuous streams</th></tr></thead>
+    {% for e in busiest %}
+    <tr><td><a href="{{ url_for('ui.host', ident=e.host.id) }}">{{ e.host.hostname }}</a></td><td>{{ e.meshes }}</td><td>{{ e.tasks }}</td><td>{{ e.partners }}</td>
+      <td>{{ "{:,.0f}".format(e.throughput_runs) }}</td>
+      <td>{{ "{:.0%}".format(e.throughput_share) }} {% if e.throughput_share > 0.33 %}<span class="pill bad">overbooked</span>{% elif e.throughput_share > 0.2 %}<span class="pill warn">busy</span>{% endif %}</td>
+      <td>{{ e.streams }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+
+<section class="card">
+  <h2>Measurements made more than once</h2>
+  <p class="help">Host pairs that several tasks measure with the same type of test. That can be on purpose (IPv4 and IPv6, different intervals), but identical settings in two meshes mean the hosts do the same work twice.</p>
+  {% if overlaps %}
+  <table>
+    <thead><tr><th>Test type</th><th>Shared host pairs</th><th>Tasks (mesh: task, settings)</th></tr></thead>
+    {% for o in overlaps %}
+    <tr><td>{{ title(o.type) }}{% if o.same_settings %} <span class="pill warn">same test</span>{% endif %}</td><td>{{ "{:,}".format(o.pairs) }}</td>
+      <td>{% for t, label in o.tasks %}<a href="{{ url_for('ui.mesh', ident=t.mesh.id) }}">{{ t.mesh.name }}</a>: {{ t.task.name }} <span class="quiet">(<a class="quiet" href="{{ url_for('ui.test', ident=t.test.id) }}">{{ t.test.name }}</a>{% if label %}, {{ label }}{% endif %})</span>{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="quiet">None: no host pair is measured twice with the same test type.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Hosts that may not be able to run their tests</h2>
+  <p class="help">Hosts in a task whose Lookup Service record does not list the task's test type. The record can be incomplete, so treat these as things to check, not certain failures. Hosts added by hand are not judged.</p>
+  {% if gaps %}
+  <table>
+    {% for x in gaps %}
+    <tr><td><a href="{{ url_for('ui.mesh', ident=x.task.mesh.id) }}">{{ x.task.mesh.name }}</a>: {{ x.task.task.name }} <span class="quiet">({{ title(x.task.type) }})</span></td>
+      <td>{{ x.hosts|length }}: {% for h in x.hosts[:8] %}<a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% if x.hosts|length > 8 %} …{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="quiet">None found.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>perfSONAR versions</h2>
+  <p class="help">As reported to the Lookup Service by the {{ versions.total }} hosts in enabled tasks.</p>
+  <table class="plain">{% for v, n in versions.rows %}<tr><td>{{ v }}</td><td>{{ n }}</td></tr>{% endfor %}</table>
+  {% if versions.old %}<p>Older than 5.0 ({{ versions.old|length }}): {% for h in versions.old %}<a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a> <span class="quiet">{{ (h.info or {}).get("pshost-toolkitversion") or (h.info or {}).get("pshost-bundle-version") }}{% if h.last_seen %}, last listed {{ h.last_seen|ago }}{% endif %}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>Hosts gone quiet, by mesh</h2>
+  <p class="help">Hosts in enabled tasks that the Lookup Service has not listed for more than {{ stale_days }} days. They may be down, renamed, or no longer registering; their tests probably fail.</p>
+  {% if stale %}
+  <table>
+    {% for s in stale %}
+    <tr><td><a href="{{ url_for('ui.mesh', ident=s.mesh.id) }}">{{ s.mesh.name }}</a></td><td>{{ s.hosts|length }}: {% for h in s.hosts[:10] %}<a href="{{ url_for('ui.host', ident=h.id) }}">{{ h.hostname }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% if s.hosts|length > 10 %} …{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="quiet">None.</p>{% endif %}
+</section>
+{% endblock %}

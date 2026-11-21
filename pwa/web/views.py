@@ -1,5 +1,6 @@
 """Pages.  Each handler checks permission, changes the database through
 pwa.services, records an audit entry and republishes."""
+import collections
 import datetime
 import json
 import os
@@ -9,7 +10,7 @@ from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, send_from_directory, session as cookie, url_for)
 from sqlalchemy import func, or_
 
-from .. import authz, services, specforms
+from .. import authz, reports, services, specforms, testinfo
 from .. import models as m
 from .. import publish as publisher
 from . import publish_now
@@ -559,15 +560,106 @@ def clone(kind, ident):
 # tests
 # --------------------------------------------------------------------------
 
+def _test_problems(t):
+    return (specforms.validate("tests", t.type, t.spec or {}) +
+            testinfo.problems(t.type, t.spec or {}, t.tools or []))
+
+
 @ui.route("/tests")
 def tests():
-    rows = g.db.query(m.Test).order_by(m.Test.name).all()
-    used = {}
+    args = request.args
+    f = {k: (args.get(k) or "").strip() for k in ("q", "type", "mesh", "tool", "runs", "ipv", "state")}
+    all_tests = g.db.query(m.Test).order_by(m.Test.name).all()
+    used, enabled_in = {}, {}
     for t in g.db.query(m.MeshTask):
         used.setdefault(t.test_id, set()).add(t.mesh_id)
-    return render_template("tests.html", tests=rows, used=used, friendly=specforms.FRIENDLY_TYPES,
-                           problems={t.id: specforms.validate("tests", t.type, t.spec or {}) for t in rows},
-                           test_types=specforms.available("tests"))
+        if t.enabled:
+            enabled_in.setdefault(t.test_id, set()).add(t.mesh_id)
+    problems = {t.id: _test_problems(t) for t in all_tests}
+    words = f["q"].lower().split()
+
+    def keep(t):
+        text = " ".join([t.name, t.description or "", t.type, testinfo.title(t.type)]).lower()
+        if any(w not in text for w in words):
+            return False
+        if f["type"] and t.type != f["type"]:
+            return False
+        if f["mesh"] and int(f["mesh"]) not in used.get(t.id, set()):
+            return False
+        if f["tool"] and f["tool"] not in (t.tools or []):
+            return False
+        if f["runs"] == "continuous" and t.repeat:
+            return False
+        if f["runs"] and f["runs"] != "continuous" and t.repeat != f["runs"]:
+            return False
+        if f["ipv"] and str((t.spec or {}).get("ip-version", "any")) != f["ipv"]:
+            return False
+        state = f["state"]
+        if state == "used" and not enabled_in.get(t.id):
+            return False
+        if state == "disabled" and (enabled_in.get(t.id) or not used.get(t.id)):
+            return False
+        if state == "unused" and used.get(t.id):
+            return False
+        if state == "problems" and not problems[t.id]:
+            return False
+        return True
+    rows = [t for t in all_tests if keep(t)]
+    ctx = {"tests": rows, "total": len(all_tests), "f": f, "used": used, "enabled_in": enabled_in,
+           "problems": problems, "title": testinfo.title,
+           "test_types": specforms.available("tests"),
+           "types_here": sorted({t.type for t in all_tests}, key=testinfo.title),
+           "meshes": g.db.query(m.Mesh).order_by(m.Mesh.name).all(),
+           "tools_here": sorted({x for t in all_tests for x in (t.tools or [])}),
+           "intervals_here": sorted({t.repeat for t in all_tests if t.repeat}, key=lambda r: specforms.iso_to_seconds(r)),
+           "ipv_here": sorted({str((t.spec or {}).get("ip-version", "any")) for t in all_tests}),
+           "use_of": lambda name: testinfo.guidance(name).get("use", "special")}
+    return render_template("_test_rows.html" if is_htmx() else "tests.html", **ctx)
+
+
+@ui.route("/test-types")
+def test_types():
+    hosts = g.db.query(m.Host.id, m.Host.capabilities, m.Host.source).all()
+    in_use = {row[0] for row in g.db.query(m.group_members.c.host_id).distinct()}
+    described = [h for h in hosts if h.source == "lookup" and h.capabilities]
+    advertise = collections.Counter(c for h in described for c in set(h.capabilities))
+    advertise_used = collections.Counter(c for h in described if h.id in in_use for c in set(h.capabilities))
+    here = collections.Counter(t.type for t in g.db.query(m.Test))
+    rows = []
+    for name in specforms.available("tests"):
+        gd = testinfo.guidance(name)
+        rows.append({"name": name, "title": testinfo.title(name), "g": gd, "m": testinfo.measured(name),
+                     "advertise": advertise.get(name, 0), "advertise_used": advertise_used.get(name, 0),
+                     "here": here.get(name, 0)})
+    order = {"mesh": 0, "special": 1, "testing": 2}
+    rows.sort(key=lambda r: (order.get(r["g"].get("use"), 1), r["name"] not in specforms.FRIENDLY_TYPES, r["title"]))
+    return render_template("test_types.html", rows=rows, described=len(described),
+                           described_used=len([h for h in described if h.id in in_use]),
+                           AVAILABILITY=testinfo.AVAILABILITY, USE=testinfo.USE,
+                           source=testinfo.catalog().get("_source", {}))
+
+
+@ui.route("/test-types/<name>")
+def test_type(name):
+    if not specforms.known("tests", name):
+        abort(404)
+    fields = specforms.fields("tests", name)
+    tools = testinfo.tools(name)
+    support = {f["name"]: testinfo.option_tools(name, f["name"]) for f in fields}
+    hosts = g.db.query(m.Host).filter(m.Host.source == "lookup").all()
+    in_use = {row[0] for row in g.db.query(m.group_members.c.host_id).distinct()}
+    described = [h for h in hosts if h.capabilities]
+    have = [h for h in described if name in h.capabilities]
+    return render_template(
+        "test_type.html", name=name, title=testinfo.title(name), g=testinfo.guidance(name),
+        m=testinfo.measured(name), fields=fields, tools=tools, support=support,
+        by_value={f["name"]: testinfo.option_value_tools(name, f["name"]) for f in fields},
+        tool_description=testinfo.tool_description,
+        AVAILABILITY=testinfo.AVAILABILITY, ADDRESSING=testinfo.ADDRESSING, SCHEDULING=testinfo.SCHEDULING,
+        have=len(have), have_used=sorted((h for h in have if h.id in in_use), key=lambda h: h.hostname),
+        described=len(described), described_used=len([h for h in described if h.id in in_use]),
+        tests_here=g.db.query(m.Test).filter_by(type=name).order_by(m.Test.name).all(),
+        source=testinfo.catalog().get("_source", {}))
 
 
 def _test_form(test, form=None, errors=()):
@@ -578,7 +670,10 @@ def _test_form(test, form=None, errors=()):
     return render_template(
         "test.html", test=test, fields=fields, spec=spec, form=form, errors=errors,
         extra_json=json.dumps(extra, indent=2) if extra else "",
-        tools=specforms.TOOLS.get(test.type, []), friendly=specforms.FRIENDLY_TYPES,
+        tools=testinfo.tools(test.type), tool_description=testinfo.tool_description,
+        option_note=lambda o: testinfo.option_note(test.type, o), guide=testinfo.guidance(test.type),
+        type_title=testinfo.title(test.type), addressing=testinfo.addressing(test.type),
+        friendly=specforms.FRIENDLY_TYPES,
         intervals=COMMON_INTERVALS, usage=services.test_usage(g.db, test) if test.id else [],
         can_edit=(g.access.can("edit", "test", test) if test.id else g.access.can("create", "test")),
         can_delete=bool(test.id) and g.access.can("delete", "test", test),
@@ -630,6 +725,7 @@ def _apply_test_form(test):
     test.sliprand = True
     if not errors:
         errors += specforms.validate("tests", test.type, spec)
+        errors += testinfo.problems(test.type, spec, test.tools)
     return errors
 
 
@@ -820,6 +916,8 @@ def mesh_new():
 
 def _pairs(task, membership):
     a = len(membership.of(task.group_a))
+    if testinfo.addressing(task.test.type) != "pair":
+        return a, None, a
     if task.topology == "disjoint":
         return a, len(membership.of(task.group_b)), 2 * a * len(membership.of(task.group_b))
     return a, None, a * (a - 1)
@@ -845,6 +943,7 @@ def mesh(ident):
     problems, withheld = publisher.mesh_status(g.db, mesh)
     return render_template(
         "mesh.html", mesh=mesh, pairs={t.id: _pairs(t, membership) for t in mesh.tasks},
+        addressing={t.id: testinfo.addressing(t.test.type) for t in mesh.tasks},
         problems=problems, withheld={t.id: errs for t, errs in withheld},
         archives=g.db.query(m.Archive).order_by(m.Archive.name).all(),
         publication=g.db.get(m.Publication, "config/" + mesh.slug),
@@ -884,6 +983,11 @@ def task(ident, task_id=None):
             errors.append("This mesh already has a task called “%s”." % name)
         if test is None:
             errors.append("Choose a test (start typing its name).")
+        elif testinfo.addressing(test.type) == "none":
+            errors.append("%s tests are not addressed by host, so they cannot be used in a task." % testinfo.title(test.type))
+        elif testinfo.addressing(test.type) == "each" and topology == "disjoint":
+            topology = "mesh"         # each host runs it on its own: one group is all it needs
+            group_b = None
         if group_a is None:
             errors.append("Choose a host group.")
         if topology == "disjoint" and group_b is None:
@@ -937,6 +1041,29 @@ def task_action(ident, task_id, action):
     else:
         abort(404)
     return redirect(url_for("ui.mesh", ident=mesh.id))
+
+
+# --------------------------------------------------------------------------
+# reports
+# --------------------------------------------------------------------------
+
+@ui.route("/reports")
+def reports_page():
+    all_tasks = reports.tasks(g.db)
+    load = reports.host_load(all_tasks)
+    busiest = sorted(load, key=lambda e: (-e["throughput_seconds"], -e["streams"]))[:25]
+    return render_template("reports.html", meshes=reports.mesh_summary(all_tasks), busiest=busiest,
+                           hosts_in_use=len(load), overlaps=reports.overlaps(all_tasks),
+                           gaps=reports.capability_gaps(all_tasks), versions=reports.versions(all_tasks),
+                           stale=reports.stale(all_tasks), stale_days=reports.STALE_DAYS, title=testinfo.title)
+
+
+@ui.route("/reports/between")
+def reports_between():
+    a = g.db.get(m.Host, request.args.get("a", type=int) or 0)
+    b = g.db.get(m.Host, request.args.get("b", type=int) or 0)
+    rows = reports.between(reports.tasks(g.db), a, b) if a else []
+    return render_template("between.html", a=a, b=b, rows=rows, title=testinfo.title)
 
 
 # --------------------------------------------------------------------------

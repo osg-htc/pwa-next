@@ -19,9 +19,10 @@
     <tr {% if not t.enabled %}class="off"{% endif %}>
       <td>{% if can_edit %}<a href="{{ url_for('ui.task', ident=mesh.id, task_id=t.id) }}">{{ t.name }}</a>{% else %}{{ t.name }}{% endif %}</td>
       <td><a href="{{ url_for('ui.test', ident=t.test.id) }}">{{ t.test.name }}</a><br><span class="quiet">{{ friendly.get(t.test.type, t.test.type) }}, {% if t.test.repeat %}every {{ t.test.repeat|duration }}{% else %}continuous{% endif %}</span></td>
-      <td>{% if t.topology == "disjoint" %}each host in <a href="{{ url_for('ui.group', ident=t.group_a.id) }}">{{ t.group_a.name }}</a><br>and each host in <a href="{{ url_for('ui.group', ident=t.group_b.id) }}">{{ t.group_b.name }}</a>
+      <td>{% if addressing[t.id] != "pair" %}each host in <a href="{{ url_for('ui.group', ident=t.group_a.id) }}">{{ t.group_a.name }}</a>, on its own
+          {% elif t.topology == "disjoint" %}each host in <a href="{{ url_for('ui.group', ident=t.group_a.id) }}">{{ t.group_a.name }}</a><br>and each host in <a href="{{ url_for('ui.group', ident=t.group_b.id) }}">{{ t.group_b.name }}</a>
           {% else %}all hosts in <a href="{{ url_for('ui.group', ident=t.group_a.id) }}">{{ t.group_a.name }}</a>{% endif %}</td>
-      <td class="nowrap">{{ a }}{% if b is not none %} × {{ b }}{% endif %} hosts<br><span class="quiet">{{ "{:,}".format(n) }} test pairs</span></td>
+      <td class="nowrap">{{ a }}{% if b is not none %} × {{ b }}{% endif %} hosts<br><span class="quiet">{{ "{:,}".format(n) }} {{ "test pairs" if addressing[t.id] == "pair" else "hosts, each on its own" }}</span></td>
       <td>{% if not t.enabled %}<span class="pill">disabled</span>{% elif t.id in withheld %}<span class="pill bad" title="{{ withheld[t.id]|join('; ') }}">withheld: invalid test</span>{% elif a == 0 or b == 0 %}<span class="pill warn">no hosts</span>{% endif %}</td>
       <td class="actions">{% if can_edit %}
         <form method="post" action="{{ url_for('ui.task_action', ident=mesh.id, task_id=t.id, action='toggle') }}">{{ csrf_field() }}<button class="link">{{ "disable" if t.enabled else "enable" }}</button></form>

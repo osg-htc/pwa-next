@@ -174,6 +174,14 @@ def _title(name):
     return " ".join(small.get(w, w.capitalize()) for w in name.split("-"))
 
 
+def properties(kind, name):
+    """Names of every option the newest spec version of a plugin allows."""
+    if not known(kind, name):
+        return set()
+    _, versions = _versions(kind, name)
+    return set(((versions[-1] or {}).get("properties") or {}).keys())
+
+
 def fields(kind, name, version=None):
     """Describe the editable fields of a spec as a list of dicts.
 

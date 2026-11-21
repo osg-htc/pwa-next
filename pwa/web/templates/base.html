@@ -20,6 +20,7 @@
         ("ui.tests", "Tests", ("ui.test",)),
         ("ui.hosts", "Hosts", ("ui.host",)),
         ("ui.archives", "Archives", ("ui.archive",)),
+        ("ui.reports_page", "Reports", ("ui.reports",)),
         ("ui.access", "People", ("ui.access", "ui.team", "ui.user")),
         ("ui.audit_log", "History", ("ui.audit",))] %}
     <a href="{{ url_for(endpoint) }}" {% if here.startswith(prefix) %}class="here"{% endif %}>{{ label }}</a>

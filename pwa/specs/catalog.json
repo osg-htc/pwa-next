@@ -1,0 +1,950 @@
+{
+ "_source": {
+  "built": "2026-11-21",
+  "note": "Built by tools/build_test_catalog.py; do not edit by hand.",
+  "pscheduler": "https://localhost/pscheduler"
+ },
+ "tests": {
+  "clock": {
+   "base_tools": [
+    "psclock"
+   ],
+   "description": "Measure the clock difference between hosts",
+   "option_values": {},
+   "options": {
+    "timeout": [
+     "psclock"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "psclock"
+   ],
+   "unchecked": []
+  },
+  "dns": {
+   "base_tools": [
+    "dnspy"
+   ],
+   "description": "Measure DNS transaction time",
+   "option_values": {},
+   "options": {
+    "host": [
+     "dnspy"
+    ],
+    "host-node": [
+     "dnspy"
+    ],
+    "nameserver": [
+     "dnspy"
+    ],
+    "timeout": [
+     "dnspy"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "dnspy"
+   ],
+   "unchecked": []
+  },
+  "http": {
+   "base_tools": [
+    "curl"
+   ],
+   "description": "Measure HTTP Response Time",
+   "option_values": {},
+   "options": {
+    "always-succeed": [
+     "curl"
+    ],
+    "host": [
+     "curl"
+    ],
+    "host-node": [
+     "curl"
+    ],
+    "ip-version": [
+     "curl"
+    ],
+    "keep-content": [
+     "curl"
+    ],
+    "parse": [
+     "curl"
+    ],
+    "timeout": [
+     "curl"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "curl"
+   ],
+   "unchecked": [
+    "headers"
+   ]
+  },
+  "idle": {
+   "base_tools": [
+    "snooze"
+   ],
+   "description": "Consume time in the background",
+   "option_values": {},
+   "options": {
+    "parting-comment": [
+     "snooze"
+    ],
+    "starting-comment": [
+     "snooze"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "sleep",
+    "snooze"
+   ],
+   "unchecked": [
+    "host"
+   ]
+  },
+  "idlebgm": {
+   "base_tools": [
+    "sleepbgm"
+   ],
+   "description": "Consume time in the background - NOT FOR PRODUCTION",
+   "option_values": {},
+   "options": {
+    "host": [
+     "sleepbgm"
+    ],
+    "host-node": [
+     "sleepbgm"
+    ],
+    "interval": [
+     "sleepbgm"
+    ],
+    "parting-comment": [
+     "sleepbgm"
+    ],
+    "starting-comment": [
+     "sleepbgm"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background-multi",
+   "tools": [
+    "sleepbgm"
+   ],
+   "unchecked": []
+  },
+  "idleex": {
+   "base_tools": [
+    "snooze"
+   ],
+   "description": "Consume time exclusively - NOT FOR PRODUCTION",
+   "option_values": {},
+   "options": {
+    "host": [
+     "snooze"
+    ],
+    "host-node": [
+     "snooze"
+    ],
+    "parting-comment": [
+     "snooze"
+    ],
+    "starting-comment": [
+     "snooze"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "exclusive",
+   "tools": [
+    "sleep",
+    "snooze"
+   ],
+   "unchecked": []
+  },
+  "latency": {
+   "base_tools": [
+    "owping",
+    "twping",
+    "halfping"
+   ],
+   "description": "Measure network latency between hosts",
+   "option_values": {
+    "protocol": {
+     "owamp": [
+      "owping"
+     ],
+     "twamp": [
+      "twping"
+     ]
+    }
+   },
+   "options": {
+    "bucket-width": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "ctrl-port": [
+     "owping",
+     "twping"
+    ],
+    "flip": [
+     "owping",
+     "twping"
+    ],
+    "ip-tos": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "ip-version": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "output-raw": [
+     "owping",
+     "twping"
+    ],
+    "packet-count": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "packet-interval": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "packet-padding": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "packet-timeout": [
+     "owping",
+     "twping",
+     "halfping"
+    ],
+    "protocol": [
+     "owping",
+     "twping"
+    ],
+    "reverse": [
+     "owping",
+     "twping"
+    ],
+    "traverse-nat": [
+     "owping",
+     "twping"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "normal",
+   "tools": [
+    "owping",
+    "twping",
+    "halfping"
+   ],
+   "unchecked": [
+    "data-ports"
+   ]
+  },
+  "latencybg": {
+   "base_tools": [
+    "powstream"
+   ],
+   "description": "Run one-way latency tests in the background",
+   "option_values": {
+    "protocol": {
+     "owamp": [],
+     "twamp": []
+    }
+   },
+   "options": {
+    "bucket-width": [
+     "powstream"
+    ],
+    "ctrl-port": [
+     "powstream"
+    ],
+    "duration": [
+     "powstream"
+    ],
+    "flip": [
+     "powstream"
+    ],
+    "ip-tos": [],
+    "ip-version": [
+     "powstream"
+    ],
+    "output-raw": [
+     "powstream"
+    ],
+    "packet-count": [
+     "powstream"
+    ],
+    "packet-interval": [
+     "powstream"
+    ],
+    "packet-padding": [
+     "powstream"
+    ],
+    "packet-timeout": [
+     "powstream"
+    ],
+    "protocol": []
+   },
+   "participants": 1,
+   "scheduling_class": "background-multi",
+   "tools": [
+    "powstream"
+   ],
+   "unchecked": [
+    "data-ports"
+   ]
+  },
+  "mtu": {
+   "base_tools": [
+    "fwmtu",
+    "tracemtu"
+   ],
+   "description": "Measure Maximum Transmission Unit (MTU)",
+   "option_values": {},
+   "options": {
+    "ip-version": [
+     "fwmtu",
+     "tracemtu"
+    ],
+    "port": [
+     "fwmtu"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "fwmtu",
+    "tracemtu"
+   ],
+   "unchecked": []
+  },
+  "noop": {
+   "base_tools": [
+    "passthrough"
+   ],
+   "description": "Do nothing",
+   "option_values": {},
+   "options": {
+    "fail": [
+     "passthrough"
+    ],
+    "host": [
+     "passthrough"
+    ],
+    "host-node": [
+     "passthrough"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "passthrough"
+   ],
+   "unchecked": [
+    "data"
+   ]
+  },
+  "psresponse": {
+   "base_tools": [
+    "pstimer"
+   ],
+   "description": "Measure pScheduler Response Time",
+   "option_values": {},
+   "options": {
+    "timeout": [
+     "pstimer"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "pstimer"
+   ],
+   "unchecked": []
+  },
+  "rtt": {
+   "base_tools": [
+    "ping",
+    "tcpping",
+    "twping"
+   ],
+   "description": "Measure the round trip time between hosts",
+   "option_values": {
+    "protocol": {
+     "icmp": [
+      "ping"
+     ],
+     "tcp": [
+      "tcpping"
+     ],
+     "twamp": [
+      "twping"
+     ]
+    }
+   },
+   "options": {
+    "count": [
+     "ping",
+     "tcpping",
+     "twping"
+    ],
+    "deadline": [
+     "ping",
+     "twping"
+    ],
+    "flow-label": [
+     "twping"
+    ],
+    "fragment": [
+     "ping"
+    ],
+    "hostnames": [
+     "ping",
+     "tcpping",
+     "twping"
+    ],
+    "interval": [
+     "ping",
+     "twping"
+    ],
+    "ip-tos": [
+     "ping",
+     "twping"
+    ],
+    "ip-version": [
+     "ping",
+     "tcpping",
+     "twping"
+    ],
+    "length": [
+     "ping",
+     "twping"
+    ],
+    "port": [
+     "tcpping"
+    ],
+    "protocol": [
+     "ping",
+     "tcpping",
+     "twping"
+    ],
+    "suppress-loopback": [
+     "ping",
+     "twping"
+    ],
+    "timeout": [
+     "ping",
+     "twping"
+    ],
+    "ttl": [
+     "ping",
+     "twping"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "ping",
+    "tcpping",
+    "twping"
+   ],
+   "unchecked": []
+  },
+  "simplestream": {
+   "base_tools": [
+    "simplestreamer"
+   ],
+   "description": "Test communication between two hosts using TCP",
+   "option_values": {},
+   "options": {
+    "dawdle": [
+     "simplestreamer"
+    ],
+    "fail": [
+     "simplestreamer"
+    ],
+    "ip-version": [
+     "simplestreamer"
+    ],
+    "port": [
+     "simplestreamer"
+    ],
+    "test-material": [
+     "simplestreamer"
+    ],
+    "timeout": [
+     "simplestreamer"
+    ]
+   },
+   "participants": 2,
+   "scheduling_class": "background",
+   "tools": [
+    "simplestreamer"
+   ],
+   "unchecked": []
+  },
+  "throughput": {
+   "base_tools": [
+    "iperf3",
+    "nuttcp",
+    "iperf2",
+    "ethr"
+   ],
+   "description": "Measure network throughput between hosts",
+   "option_values": {},
+   "options": {
+    "bandwidth": [
+     "iperf3",
+     "nuttcp",
+     "ethr"
+    ],
+    "bandwidth-strict": [
+     "nuttcp"
+    ],
+    "buffer-length": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "burst-size": [
+     "nuttcp"
+    ],
+    "client-cpu-affinity": [
+     "iperf3",
+     "nuttcp"
+    ],
+    "congestion": [
+     "iperf3",
+     "iperf2"
+    ],
+    "duration": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "flow-label": [
+     "iperf3"
+    ],
+    "fq-rate": [
+     "iperf3",
+     "iperf2"
+    ],
+    "interval": [
+     "iperf3",
+     "nuttcp",
+     "iperf2"
+    ],
+    "ip-tos": [
+     "iperf3",
+     "nuttcp",
+     "ethr"
+    ],
+    "ip-version": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "link-rtt": [
+     "iperf3",
+     "iperf2",
+     "ethr"
+    ],
+    "local-address": [
+     "iperf3",
+     "iperf2",
+     "ethr"
+    ],
+    "loopback": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "mss": [
+     "iperf3",
+     "nuttcp"
+    ],
+    "no-delay": [],
+    "omit": [
+     "iperf3",
+     "ethr"
+    ],
+    "parallel": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "reverse": [
+     "iperf3",
+     "nuttcp",
+     "ethr"
+    ],
+    "reverse-connections": [
+     "nuttcp"
+    ],
+    "server-cpu-affinity": [
+     "iperf3",
+     "nuttcp"
+    ],
+    "single-ended": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "single-ended-port": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "udp": [
+     "iperf3",
+     "nuttcp",
+     "iperf2",
+     "ethr"
+    ],
+    "window-size": [
+     "iperf3",
+     "nuttcp",
+     "iperf2"
+    ],
+    "zero-copy": [
+     "iperf3"
+    ]
+   },
+   "participants": 2,
+   "scheduling_class": "exclusive",
+   "tools": [
+    "iperf3",
+    "nuttcp",
+    "iperf2",
+    "ethr"
+   ],
+   "unchecked": []
+  },
+  "trace": {
+   "base_tools": [
+    "traceroute",
+    "paris-traceroute",
+    "tracepath"
+   ],
+   "description": "Trace the path between IP hosts",
+   "option_values": {
+    "probe-type": {
+     "icmp": [
+      "traceroute"
+     ],
+     "tcp": [
+      "traceroute",
+      "paris-traceroute"
+     ],
+     "udp": [
+      "traceroute",
+      "paris-traceroute",
+      "tracepath"
+     ]
+    }
+   },
+   "options": {
+    "algorithm": [
+     "paris-traceroute"
+    ],
+    "as": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "dest-port": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "first-ttl": [
+     "traceroute",
+     "paris-traceroute"
+    ],
+    "flow-label": [
+     "traceroute"
+    ],
+    "fragment": [
+     "traceroute"
+    ],
+    "hops": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "hostnames": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "ip-tos": [
+     "traceroute",
+     "paris-traceroute"
+    ],
+    "ip-version": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "length": [
+     "traceroute"
+    ],
+    "probe-type": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "queries": [
+     "traceroute",
+     "paris-traceroute",
+     "tracepath"
+    ],
+    "wait": [
+     "traceroute",
+     "paris-traceroute"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "traceroute",
+    "paris-traceroute",
+    "tracepath"
+   ],
+   "unchecked": []
+  },
+  "wifibssid": {
+   "base_tools": [
+    "bssidscanner"
+   ],
+   "description": "Outputs a list of BSSIDs in json format with the given SSID",
+   "option_values": {},
+   "options": {
+    "duration": [
+     "bssidscanner"
+    ],
+    "host": [
+     "bssidscanner"
+    ],
+    "host-node": [
+     "bssidscanner"
+    ],
+    "timeout": [
+     "bssidscanner"
+    ]
+   },
+   "participants": 1,
+   "scheduling_class": "background",
+   "tools": [
+    "bssidscanner"
+   ],
+   "unchecked": []
+  }
+ },
+ "tools": {
+  "bssidscanner": {
+   "description": "Scans given interface for all BSSIDs. Returns a list of all associated BSSIDs in json format for the given SSID",
+   "preference": 0,
+   "tests": [
+    "wifibssid"
+   ]
+  },
+  "curl": {
+   "description": "cURL-based tool for HTTP tests",
+   "preference": 0,
+   "tests": [
+    "http"
+   ]
+  },
+  "dnspy": {
+   "description": "Measure DNS transaction time",
+   "preference": 0,
+   "tests": [
+    "dns"
+   ]
+  },
+  "ethr": {
+   "description": "Measure network throughput with ethr",
+   "preference": -10,
+   "tests": [
+    "throughput"
+   ]
+  },
+  "fwmtu": {
+   "description": "Measure Maximum Transmission Unit (MTU)",
+   "preference": 0,
+   "tests": [
+    "mtu"
+   ]
+  },
+  "halfping": {
+   "description": "halfping tool for approximate latency",
+   "preference": -100,
+   "tests": [
+    "latency"
+   ]
+  },
+  "iperf2": {
+   "description": "Measure network throughput with iperf2",
+   "preference": 0,
+   "tests": [
+    "throughput"
+   ]
+  },
+  "iperf3": {
+   "description": "Measure network throughput with iperf3",
+   "preference": 10,
+   "tests": [
+    "throughput"
+   ]
+  },
+  "nuttcp": {
+   "description": "Measure network throughput with nuttcp",
+   "preference": 5,
+   "tests": [
+    "throughput"
+   ]
+  },
+  "owping": {
+   "description": "Determine one-way latency with OWAMP",
+   "preference": 0,
+   "tests": [
+    "latency"
+   ]
+  },
+  "paris-traceroute": {
+   "description": "Determine the route between hosts with Paris Traceroute",
+   "preference": -5,
+   "tests": [
+    "trace"
+   ]
+  },
+  "passthrough": {
+   "description": "Pass data from noop through as a result",
+   "preference": 0,
+   "tests": [
+    "noop"
+   ]
+  },
+  "ping": {
+   "description": "Measure the round-trip time to another host with ping",
+   "preference": 0,
+   "tests": [
+    "rtt"
+   ]
+  },
+  "powstream": {
+   "description": "Repeatedly measure latency with OWAMP's powstream",
+   "preference": 0,
+   "tests": [
+    "latencybg"
+   ]
+  },
+  "psclock": {
+   "description": "Compare the clocks on two pScheduler nodes",
+   "preference": 0,
+   "tests": [
+    "clock"
+   ]
+  },
+  "pstimer": {
+   "description": "Measure pScheduler response time",
+   "preference": 0,
+   "tests": [
+    "psresponse"
+   ]
+  },
+  "simplestreamer": {
+   "description": "Stream data from one node to another with TCP",
+   "preference": 0,
+   "tests": [
+    "simplestream"
+   ]
+  },
+  "sleep": {
+   "description": "Sleep for periods longer than 15 seconds",
+   "preference": 0,
+   "tests": [
+    "idle",
+    "idleex"
+   ]
+  },
+  "sleepbgm": {
+   "description": "Consume time in the background multiple times",
+   "preference": 0,
+   "tests": [
+    "idlebgm"
+   ]
+  },
+  "snooze": {
+   "description": "Sleep for periods of 60 seconds or less",
+   "preference": 0,
+   "tests": [
+    "idle",
+    "idleex"
+   ]
+  },
+  "tcpping": {
+   "description": "Measure the round-trip time to another host with tcpping",
+   "preference": 0,
+   "tests": [
+    "rtt"
+   ]
+  },
+  "tracemtu": {
+   "description": "Measure Maximum Transmission Unit (MTU) using traceroute",
+   "preference": -10,
+   "tests": [
+    "mtu"
+   ]
+  },
+  "tracepath": {
+   "description": "Map the route between hosts with tracepath",
+   "preference": -10,
+   "tests": [
+    "trace"
+   ]
+  },
+  "traceroute": {
+   "description": "Map the route between hosts with traceroute",
+   "preference": 0,
+   "tests": [
+    "trace"
+   ]
+  },
+  "twping": {
+   "description": "Determine latency with TWAMP",
+   "preference": 0,
+   "tests": [
+    "latency",
+    "rtt"
+   ]
+  }
+ }
+}

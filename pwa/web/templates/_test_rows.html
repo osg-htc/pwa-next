@@ -1,0 +1,16 @@
+<p class="quiet">{{ tests|length }} of {{ total }} test{{ "" if total == 1 else "s" }}.</p>
+<table>
+  <thead><tr><th>Test</th><th>Type</th><th>Runs</th><th>Tool</th><th>Used by</th><th></th></tr></thead>
+  {% for t in tests %}
+  <tr>
+    <td><a href="{{ url_for('ui.test', ident=t.id) }}">{{ t.name }}</a>{% if t.description %}<br><span class="quiet">{{ t.description|truncate(90) }}</span>{% endif %}</td>
+    <td><a class="plain" href="{{ url_for('ui.test_type', name=t.type) }}">{{ title(t.type) }}</a>{% if t.spec and t.spec.get("ip-version") %} <span class="pill">IPv{{ t.spec["ip-version"] }}</span>{% endif %}</td>
+    <td>{% if t.repeat %}every {{ t.repeat|duration }}{% else %}continuously{% endif %}</td>
+    <td class="quiet">{{ (t.tools or [])|join(", ") }}</td>
+    <td>{% set n = (enabled_in.get(t.id) or [])|length %}{% set all = (used.get(t.id) or [])|length %}{% if n %}{{ n }} mesh{{ "" if n == 1 else "es" }}{% elif all %}<span class="quiet">disabled tasks only</span>{% else %}<span class="quiet">not used</span>{% endif %}</td>
+    <td>{% if problems[t.id] %}<span class="pill bad" title="{{ problems[t.id]|join('; ') }}">problem</span>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="quiet">No tests match.</td></tr>
+  {% endfor %}
+</table>

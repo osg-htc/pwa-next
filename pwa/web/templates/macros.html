@@ -15,15 +15,15 @@
 {% endmacro %}
 
 {# One input for one option of a pScheduler spec, built from its schema. #}
-{% macro spec_field(f, spec, form, prefix="spec.") %}
+{% macro spec_field(f, spec, form, prefix="spec.", note="") %}
 {% set key = prefix ~ f.name %}
 {% set posted = form is not none %}
 {% set val = form.get(key) if posted else spec.get(f.name) %}
 <div class="field{% if f.kind == 'bool' %} check{% endif %}">
   {% if f.kind == "bool" %}
-    <label><input type="checkbox" name="{{ key }}" {% if val %}checked{% endif %}> {{ f.title }} <code>{{ f.name }}</code></label>
+    <label><input type="checkbox" name="{{ key }}" {% if val %}checked{% endif %}> {{ f.title }} <code>{{ f.name }}</code>{% if note %} <span class="pill warn" title="Tools that accept this option">{{ note }}</span>{% endif %}</label>
   {% else %}
-    <label for="{{ key }}">{{ f.title }} <code>{{ f.name }}</code></label>
+    <label for="{{ key }}">{{ f.title }} <code>{{ f.name }}</code>{% if note %} <span class="pill warn" title="Tools that accept this option">{{ note }}</span>{% endif %}</label>
     {% if f.kind == "select" %}
       <select id="{{ key }}" name="{{ key }}">
         <option value="">— not set —</option>

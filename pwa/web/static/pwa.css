@@ -120,3 +120,12 @@ summary { cursor: pointer; color: var(--accent); }
   main { padding: .6rem .7rem 3rem; }
   table { display: block; overflow-x: auto; }
 }
+
+.filters { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: .8rem 0 .4rem; }
+.filters input[type=search] { width: min(22rem, 100%); }
+.help-box p { margin: .2rem 0; }
+a.plain { color: inherit; }
+.scroll { overflow-x: auto; }
+table.matrix td.mark { text-align: center; font-size: 1.05rem; color: var(--ok); width: 5.5rem; }
+table.matrix th:not(:first-child) { text-align: center; }
+table.matrix tr.partial td:first-child { border-left: 3px solid #f0d59a; }

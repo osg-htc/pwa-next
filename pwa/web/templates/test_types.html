@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Test types{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.tests') }}">Tests</a> ›</p>
+<h1>Test types</h1>
+<p class="lead">Every kind of test pScheduler knows about. Only some are installed on every perfSONAR host, and only some make sense between the hosts of a mesh. Host counts come from what each host advertises in the Lookup Service ({{ described }} hosts describe themselves, {{ described_used }} of them in host groups here).</p>
+{% for group, label in [("mesh", "For measurement meshes"), ("special", "For particular monitoring jobs"), ("testing", "For testing pScheduler only")] %}
+<section class="card">
+  <h2>{{ label }}</h2>
+  <table>
+    <thead><tr><th>Test type</th><th>What it does</th><th>Runs</th><th>Installed</th><th title="Hosts advertising this test type in the Lookup Service">Hosts that have it</th><th>Tests here</th></tr></thead>
+    {% for r in rows if (r.g.use or "special") == group %}
+    <tr>
+      <td><a href="{{ url_for('ui.test_type', name=r.name) }}">{{ r.title }}</a><br><code class="quiet">{{ r.name }}</code></td>
+      <td>{{ r.g.summary or r.m.description or "" }}</td>
+      <td class="quiet">{{ {"pair": "host to host", "each": "each host alone", "none": "not in tasks"}.get(r.g.addressing, "") }}</td>
+      <td>{% set av = r.g.availability or "standard" %}<span class="pill {{ '' if av == 'standard' else 'warn' }}" title="{{ AVAILABILITY.get(av, '') }}">{{ {"standard": "everywhere", "extras": "extras bundle", "snmp": "snmp bundle", "unreleased": "not released", "new": "5.3", "varies": "some platforms"}.get(av, av) }}</span></td>
+      <td>{{ r.advertise_used }} <span class="quiet">in use, {{ r.advertise }} known</span></td>
+      <td>{{ r.here or "" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+{% endfor %}
+<p class="quiet">Tool and option details were measured on {{ source.built or "?" }} by asking pScheduler 5.2.6 directly (<code>tools/build_test_catalog.py</code>).</p>
+{% endblock %}

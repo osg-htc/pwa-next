@@ -21,7 +21,7 @@ import tempfile
 import jsonschema
 
 from . import models as m
-from . import specforms
+from . import specforms, testinfo
 from .services import Membership
 
 _SCHEMA = None
@@ -80,8 +80,13 @@ class Builder:
 
     def test_object(self, test):
         spec = dict(test.spec or {})
-        spec["source"] = "{% address[0] %}"
-        spec["dest"] = "{% address[1] %}"
+        if testinfo.addressing(test.type) == "pair":
+            spec["source"] = "{% address[0] %}"
+            spec["dest"] = "{% address[1] %}"
+        else:
+            # Run on each host by itself (the group is a pSConfig "list").
+            props = specforms.properties("tests", test.type)
+            spec["host" if "host" in props or "source" not in props else "source"] = "{% address[0] %}"
         spec["schema"] = (specforms.schema_version("tests", test.type, test.spec or {})
                           if specforms.known("tests", test.type) else 1)
         return {"type": test.type, "spec": spec}
@@ -111,7 +116,10 @@ class Builder:
             a, b = self.task_hosts(task)
             for h in a + b:
                 use_host(h)
-            if task.topology == "disjoint":
+            if testinfo.addressing(task.test.type) != "pair":
+                members = sorted({h.hostname for h in a + b})
+                groups[key] = {"type": "list", "addresses": [{"name": n} for n in members]}
+            elif task.topology == "disjoint":
                 groups[key] = {"type": "disjoint",
                                "a-addresses": [{"name": h.hostname} for h in a],
                                "b-addresses": [{"name": h.hostname} for h in b]}
@@ -179,7 +187,12 @@ class Builder:
 
     def spec_errors(self, test):
         if test.id not in self._spec_errors:
-            self._spec_errors[test.id] = specforms.validate("tests", test.type, test.spec or {})
+            errors = specforms.validate("tests", test.type, test.spec or {})
+            if testinfo.addressing(test.type) == "none":
+                errors = ["%s tests are not addressed by host, so they cannot run in a task" %
+                          testinfo.title(test.type)] + errors
+            errors += testinfo.problems(test.type, test.spec or {}, test.tools or [])
+            self._spec_errors[test.id] = errors
         return self._spec_errors[test.id]
 
     def problems(self, template):

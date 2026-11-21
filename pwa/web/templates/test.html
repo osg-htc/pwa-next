@@ -5,6 +5,12 @@
 <p class="crumbs"><a href="{{ url_for('ui.tests') }}">Tests</a> ›</p>
 <h1>{{ test.name or "New test" }} <span class="pill">{{ friendly.get(test.type, test.type) }}</span></h1>
 {{ errors_box(errors) }}
+<section class="card help-box">
+  <p><b>{{ type_title }}.</b> {{ guide.summary or "" }} <a href="{{ url_for('ui.test_type', name=test.type) }}">What it does, when to use it, and which tools support which options</a></p>
+  {% if addressing == "each" %}<p class="help">In a task, every host in the host group runs this test on its own; the hosts are not tested against each other.</p>
+  {% elif addressing == "none" %}<p class="flash warn">This test type is not addressed by host, so it cannot be used in a task.</p>{% endif %}
+  {% if guide.availability and guide.availability != "standard" %}<p class="flash warn">Not installed on standard perfSONAR hosts ({{ guide.availability }}). Check that the hosts you will use have it.</p>{% endif %}
+</section>
 {% set posted = form is not none %}
 <form method="post" class="form" action="{{ url_for('ui.test', ident=test.id) if test.id else url_for('ui.test_new', type=test.type) }}">
   {{ csrf_field() }}
@@ -28,22 +34,22 @@
       <p class="help">Each run may start anywhere within this window, so hosts do not all test at the same moment. Leave empty for half the interval. Durations can be typed as <code>30m</code>, <code>6h</code> or <code>PT6H</code>.</p></div>
     <div class="field"><label>Tool</label>
       {% set chosen = form.getlist('tools') if posted else (test.tools or []) %}
-      {% for tool in tools %}<label class="option"><input type="checkbox" name="tools" value="{{ tool }}" {% if tool in chosen %}checked{% endif %}> {{ tool }}</label>{% endfor %}
+      {% for tool in tools %}<label class="option"><input type="checkbox" name="tools" value="{{ tool }}" {% if tool in chosen %}checked{% endif %}> {{ tool }} <span class="quiet">{{ tool_description(tool) }}{% if loop.first %} (pScheduler's first choice){% endif %}</span></label>{% endfor %}
       {% set other = chosen|reject("in", tools)|list %}
       <input name="tools_other" class="short" value="{{ form.get('tools_other') if posted else other|join(' ') }}" placeholder="other tool">
-      <p class="help">Leave everything unticked to let pScheduler choose.</p></div>
+      <p class="help">Leave everything unticked to let pScheduler choose, in the order shown. Options marked “only …” below work only with those tools; pScheduler skips tools that cannot run the test as configured.</p></div>
   </section>
 
   <section class="card">
     <h2>Options</h2>
     <p class="help">Anything left empty uses pScheduler's default. Source and destination are filled in from the host groups of each task.</p>
     {% if fields %}
-    <div class="grid">{% for f in fields if f.common %}{{ spec_field(f, spec, form) }}{% endfor %}</div>
+    <div class="grid">{% for f in fields if f.common %}{{ spec_field(f, spec, form, note=option_note(f.name)) }}{% endfor %}</div>
     {% set rest = fields|rejectattr("common")|list %}
     {% if rest %}
     {% set used_rest = rest|selectattr("name", "in", spec.keys()|list)|list %}
     <details {% if used_rest or not fields|selectattr("common")|list %}open{% endif %}><summary>More options ({{ rest|length }}){% if used_rest %} — {{ used_rest|length }} in use{% endif %}</summary>
-      <div class="grid">{% for f in rest %}{{ spec_field(f, spec, form) }}{% endfor %}</div>
+      <div class="grid">{% for f in rest %}{{ spec_field(f, spec, form, note=option_note(f.name)) }}{% endfor %}</div>
     </details>
     {% endif %}
     {% endif %}

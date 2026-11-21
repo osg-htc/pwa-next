@@ -1,0 +1,188 @@
+{
+ "_about": "Plain-language help for each pScheduler test type, shown on the Test types pages. Written by hand from pScheduler's own descriptions and source (5.2.6, 5.3.0 branch); facts that the catalog (catalog.json, built from a live pScheduler) supplies are not repeated here. addressing: 'pair' = a source host tests to a destination host, so tasks use mesh or two-group topologies; 'each' = every host in the group runs the test on its own, against a target that is not another host in the group; 'none' = the test is not addressed by host and cannot be used in a task here. availability: 'standard' = installed on every perfSONAR 5.2 testpoint and toolkit; 'extras' and 'snmp' = optional bundles a site must install on purpose; 'unreleased' = in the source but not shipped; 'new' = arrives with perfSONAR 5.3; 'varies' = built only on some platforms. use: 'mesh' = a normal choice for measurement meshes; 'special' = useful for particular monitoring jobs, rarely in meshes; 'testing' = for testing pScheduler itself.",
+
+ "throughput": {
+  "title": "Throughput",
+  "addressing": "pair", "availability": "standard", "use": "mesh",
+  "summary": "How fast data can be sent from one host to another (TCP by default, or UDP).",
+  "what": "The source sends as much data as it can to the destination for a fixed time and reports the achieved rate, usually every second, plus TCP retransmissions. iperf3 is the default tool; nuttcp, iperf2 and ethr are alternatives.",
+  "why": "The main test in WLCG and OSG meshes. It shows what a data transfer could achieve and exposes bottlenecks, packet loss under load (as retransmissions and low rates), and host or TCP tuning problems.",
+  "mesh": "Throughput tests are exclusive: a host runs only one at a time, and nothing else that is not a background test. A full mesh of N hosts creates N×(N−1) runs per interval, and each host takes part in 2×(N−1) of them, so keep runs short (20–30 seconds) and intervals long (every few hours). The Reports page shows the resulting load per host."
+ },
+ "latency": {
+  "title": "One-way latency (scheduled)",
+  "addressing": "pair", "availability": "standard", "use": "mesh",
+  "summary": "One-way delay, jitter and packet loss, measured in bursts at a set interval.",
+  "what": "The source sends a train of small packets (OWAMP with owping) and the destination timestamps them, giving one-way delay, its variation, loss, duplication and reordering. With the twping tool it uses TWAMP instead and can measure round trips to any TWAMP responder, including network devices.",
+  "why": "One-way measurements show which direction a problem is in. Use this when you want periodic samples; for constant loss monitoring the continuous version (latencybg) is usually better.",
+  "mesh": "Needs well-synchronised clocks on both ends (NTP, ideally PTP) for meaningful one-way delay. Light on the hosts: it is a 'normal' class test and can share time with background tests."
+ },
+ "latencybg": {
+  "title": "One-way latency (continuous)",
+  "addressing": "pair", "availability": "standard", "use": "mesh",
+  "summary": "Continuous one-way delay and packet-loss monitoring between two hosts.",
+  "what": "powstream sends a steady stream of small packets (for example 10 a second) all the time and reports statistics every minute or so. It runs in the background alongside everything else.",
+  "why": "The most sensitive way to see packet loss, which is the first sign of most network problems and hurts long-distance TCP badly. Standard in WLCG and OSG latency meshes.",
+  "mesh": "Each pair in the task is a permanent stream, so there is no repeat interval. A host in an N-host mesh keeps 2×(N−1) streams open; with large meshes this adds up. Needs good clock synchronisation."
+ },
+ "rtt": {
+  "title": "Round-trip time (ping)",
+  "addressing": "pair", "availability": "standard", "use": "mesh",
+  "summary": "Round-trip time and loss to a destination, like ping.",
+  "what": "The source sends a few probes and times the replies: ICMP with ping (default), TCP connection set-up with tcpping, or TWAMP with twping. Only the source runs pScheduler; the destination just has to answer.",
+  "why": "Cheap reachability and round-trip checks, including to hosts that do not run perfSONAR. Useful where one-way latency is not possible, for example to a router or a host with poor clock synchronisation.",
+  "mesh": "Background class, so it never blocks other tests. Some sites rate-limit or block ICMP, which shows up as loss that is not real."
+ },
+ "trace": {
+  "title": "Traceroute",
+  "addressing": "pair", "availability": "standard", "use": "mesh",
+  "summary": "The network path (each router hop) from the source to the destination.",
+  "what": "Sends probes with increasing TTL and records each hop that answers, optionally with its autonomous system (AS). Tools: traceroute (default, supports most options), paris-traceroute (keeps a stable path through load balancers), tracepath (no root needed, cannot choose the outgoing interface).",
+  "why": "Explains other results: a throughput or latency change often coincides with a route change. Also shows asymmetric paths, since a mesh traces both directions.",
+  "mesh": "Background class and cheap. Commonly run every 10 minutes to an hour."
+ },
+ "mtu": {
+  "title": "Path MTU",
+  "addressing": "pair", "availability": "standard", "use": "special",
+  "summary": "The largest packet size that gets through to the destination without fragmentation.",
+  "what": "Discovers the path MTU with fwmtu (default) or tracemtu.",
+  "why": "Finds MTU mismatches and 'black holes', for example where hosts use jumbo frames (9000 bytes) but some link on the path does not, which can stall transfers in ways other tests miss.",
+  "mesh": "Background class. Results rarely change, so a long interval (daily) is enough."
+ },
+ "clock": {
+  "title": "Clock comparison",
+  "addressing": "pair", "availability": "standard", "use": "special",
+  "summary": "How far apart the clocks of two pScheduler hosts are.",
+  "what": "psclock asks the destination's pScheduler for its time and compares it with the source's clock.",
+  "why": "One-way latency results are only as good as the clocks on both ends; this checks them. Mostly a diagnostic.",
+  "mesh": "Background class and cheap, but rarely worth publishing in a mesh: once a day at most."
+ },
+ "psresponse": {
+  "title": "pScheduler response time",
+  "addressing": "pair", "availability": "standard", "use": "special",
+  "summary": "How long a pScheduler server takes to answer.",
+  "what": "pstimer times a request from the source to the destination's pScheduler API.",
+  "why": "Monitoring the health of pScheduler itself, for example to spot overloaded hosts that start to miss scheduled runs.",
+  "mesh": "Background class. Not a network measurement."
+ },
+ "simplestream": {
+  "title": "Simple stream",
+  "addressing": "pair", "availability": "standard", "use": "testing",
+  "summary": "Sends a short text message from one host to another over TCP.",
+  "what": "simplestreamer opens a TCP connection and sends a message such as HELLO.",
+  "why": "For testing that two pScheduler hosts can coordinate a test. Not a measurement.",
+  "mesh": "Not for production meshes."
+ },
+ "http": {
+  "title": "HTTP response time",
+  "addressing": "each", "availability": "standard", "use": "special",
+  "summary": "How long it takes each host to fetch a web page, and whether it succeeds.",
+  "what": "Each host fetches the URL with curl and records the time taken and the result, optionally checking the content for a string.",
+  "why": "Watching a web service (a portal, a storage endpoint's HTTP interface) from many vantage points.",
+  "mesh": "Every host in the group fetches the same URL; the hosts are not tested against each other."
+ },
+ "dns": {
+  "title": "DNS lookup time",
+  "addressing": "each", "availability": "standard", "use": "special",
+  "summary": "How long a DNS query takes from each host, and what it returns.",
+  "what": "dnspy sends one query (record types a, aaaa, ns, cname, soa, ptr, mx, txt) to the host's resolver or to a nameserver you name.",
+  "why": "Catching slow or failing name resolution, which shows up as mysterious delays in everything else.",
+  "mesh": "Every host in the group queries on its own."
+ },
+ "dns64": {
+  "title": "DNS64",
+  "addressing": "each", "availability": "new", "use": "special",
+  "summary": "Checks DNS64 address synthesis, for IPv6-only networks.",
+  "what": "Queries a name and checks the synthesised IPv6 answer.",
+  "why": "Sites running IPv6-only hosts behind NAT64/DNS64.",
+  "mesh": "Arrives with perfSONAR 5.3; 5.2 hosts do not have it."
+ },
+ "netreach": {
+  "title": "Network reachability",
+  "addressing": "each", "availability": "extras", "use": "special",
+  "summary": "Whether anything on a given network answers: the gateway and the hosts in an address range.",
+  "what": "Each host scans a network you give (a CIDR range such as 192.0.2.0/24) with fping or nmap and reports whether the gateway answers and which addresses do. You can limit how many addresses are tried and in which order.",
+  "why": "Watching that a whole subnet, a campus VLAN or a remote site's network is reachable at all, without needing perfSONAR on the far side. It is a reachability check, not a performance measurement.",
+  "mesh": "Not a host-to-host test: the target is a network. It is in the optional 'extras' bundle, so standard testpoints and toolkits do not have it, and scanning a network you do not run can set off security alarms."
+ },
+ "openports": {
+  "title": "Open ports",
+  "addressing": "each", "availability": "unreleased", "use": "special",
+  "summary": "Which TCP ports are open on a host or network.",
+  "what": "Runs an nmap scan of the ports and network you give.",
+  "why": "Security and inventory checks.",
+  "mesh": "Present in the pScheduler source but not released in any bundle. Port scans of other people's networks will be treated as attacks."
+ },
+ "disk-to-disk": {
+  "title": "Disk-to-disk transfer",
+  "addressing": "none", "availability": "extras", "use": "special",
+  "summary": "A real file transfer between storage endpoints, including disk read and write speed.",
+  "what": "Copies a file from a source URL to a destination URL with curl or Globus (GridFTP) and reports throughput.",
+  "why": "Measuring end-to-end transfer performance including storage, which memory-to-memory throughput tests leave out.",
+  "mesh": "Its source and destination are file URLs, not hosts, so it cannot be used in a task here. Optional 'extras' bundle."
+ },
+ "s3throughput": {
+  "title": "S3 storage throughput",
+  "addressing": "each", "availability": "varies", "use": "special",
+  "summary": "Read and write throughput to an S3 object store.",
+  "what": "s3-benchmark writes and reads objects of a given size in a bucket for a set time.",
+  "why": "Checking the performance of an S3 service (for example a Ceph RGW) from different places.",
+  "mesh": "It needs the S3 access and secret keys in the test, and everything in a published mesh is readable by anyone. Use it only with a key made for this purpose. pScheduler builds it only where the s3-benchmark tool is available, and the 5.2.6 testpoint does not have it, so check that your hosts do."
+ },
+ "dhcp": {
+  "title": "DHCP lease time",
+  "addressing": "each", "availability": "extras", "use": "special",
+  "summary": "How long it takes to get a DHCP lease.",
+  "what": "dhclient requests a new lease on an interface and times it.",
+  "why": "Campus and wireless network monitoring.",
+  "mesh": "Not relevant to data-centre meshes. Optional 'extras' bundle."
+ },
+ "dot1x": {
+  "title": "802.1X authentication",
+  "addressing": "each", "availability": "extras", "use": "special",
+  "summary": "Whether 802.1X network authentication works, and how long it takes.",
+  "what": "Runs wpa_supplicant with a given configuration on an interface.",
+  "why": "Campus and wireless network monitoring.",
+  "mesh": "Not relevant to data-centre meshes. Optional 'extras' bundle."
+ },
+ "wifibssid": {
+  "title": "Wi-Fi access points",
+  "addressing": "each", "availability": "standard", "use": "special",
+  "summary": "Lists the Wi-Fi access points (BSSIDs) broadcasting a given network name.",
+  "what": "bssidscanner scans a wireless interface.",
+  "why": "Wireless surveys from small perfSONAR devices.",
+  "mesh": "Only meaningful on hosts with a Wi-Fi interface."
+ },
+ "snmpget": {
+  "title": "SNMP get",
+  "addressing": "none", "availability": "snmp", "use": "special",
+  "summary": "Reads values from a network device by SNMP, optionally as rates between polls.",
+  "what": "pysnmp queries one or more OIDs on a device.",
+  "why": "Collecting router or switch counters alongside measurements.",
+  "mesh": "The target device and credentials are inside the test, not taken from a host group, so it cannot be used in a task here. Optional 'snmp' bundle."
+ },
+ "snmpgetbgm": {
+  "title": "SNMP get (continuous)",
+  "addressing": "none", "availability": "snmp", "use": "special",
+  "summary": "Polls SNMP values continuously in the background.",
+  "what": "Like SNMP get, but keeps polling and reports each result.",
+  "why": "Continuous device counters.",
+  "mesh": "Cannot be used in a task here. Optional 'snmp' bundle."
+ },
+ "snmpset": {
+  "title": "SNMP set",
+  "addressing": "none", "availability": "snmp", "use": "special",
+  "summary": "Writes values to a network device by SNMP.",
+  "what": "net-snmp-set changes OIDs on a device.",
+  "why": "Rarely appropriate from a measurement system.",
+  "mesh": "Cannot be used in a task here. Optional 'snmp' bundle."
+ },
+ "idle": {"title": "Idle", "addressing": "each", "availability": "standard", "use": "testing",
+  "summary": "Does nothing for a set time.", "what": "Sleeps.", "why": "Testing pScheduler's scheduling.", "mesh": "Not for production."},
+ "idlebgm": {"title": "Idle (background, multiple results)", "addressing": "each", "availability": "standard", "use": "testing",
+  "summary": "Does nothing in the background, producing several results.", "what": "Sleeps repeatedly.", "why": "Testing pScheduler. Marked NOT FOR PRODUCTION by pScheduler.", "mesh": "Not for production."},
+ "idleex": {"title": "Idle (exclusive)", "addressing": "each", "availability": "standard", "use": "testing",
+  "summary": "Does nothing, exclusively, for a set time.", "what": "Sleeps while blocking other exclusive tests.", "why": "Testing pScheduler. Marked NOT FOR PRODUCTION by pScheduler.", "mesh": "Not for production: it blocks throughput tests on the host."},
+ "noop": {"title": "No operation", "addressing": "each", "availability": "standard", "use": "testing",
+  "summary": "Does nothing and returns a result you supply.", "what": "Passes data through.", "why": "Testing archivers and pScheduler.", "mesh": "Not for production."}
+}

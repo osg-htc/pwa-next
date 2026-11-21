@@ -102,6 +102,10 @@ A person can have several logins (CILogon issues a different identifier per iden
 - **Sizes before you commit**: each task shows host counts and the number of test pairs it creates.
 - **Copies** of tests, groups, archives and meshes (a copied mesh starts with its tasks disabled).
 - **Needs attention** on the overview: withheld tasks, hosts that have gone quiet, archives using esmond, imported accounts not yet linked to a login.
+- **Help on every test type**: what it does, why to use it, whether standard hosts have it, how many hosts in the inventory advertise it, and which tools accept which options. The tool/option table is measured by asking a live pScheduler (`tools/build_test_catalog.py`, stored in `pwa/specs/catalog.json`); the explanations are written by hand (`pwa/specs/guidance.json`). The test editor marks options only some tools support and refuses combinations pScheduler would reject.
+- **Filters on the Tests page**: text, type, mesh, tool, schedule, IP version, and used, unused or with problems.
+- **Reports**: per mesh (hosts, measurements, runs a day, throughput test hours), the busiest hosts by share of the day spent in exclusive throughput tests, host pairs measured more than once by the same kind of test, hosts that do not advertise a task's test type, perfSONAR versions in use, hosts gone quiet per mesh, and a lookup of everything tested between two hosts.
+- **Single-host test types** (DNS, HTTP and others) are published as pSConfig `list` groups, so each host runs them on its own; test types that are not addressed by host (SNMP, disk-to-disk) cannot be put in a task.
 - **Dashboard metadata**: every task carries `reference.display-task-name` and `display-task-group`, which the 5.x Grafana agent reads (PWA issue #229).
 
 ## Evidence so far
@@ -110,7 +114,7 @@ Checked on 2026-11-20 against the production OSG/WLCG PWA (read-only):
 
 - Importing its database and publishing gives the same tasks, hosts, schedules, tools and archives as PWA serves, for all 32 meshes and 52 sampled per-host feeds (`tools/check_import.py`; the comparison resolves internal key names and was confirmed to detect deliberate changes).
 - All 32 published mesh files pass `psconfig validate` from perfSONAR 5.2.6. Production PWA passes 31; the new publisher withholds the one task with an invalid test instead of publishing it.
-- 43 automated tests cover forms, translation, publishing, membership, cascades, the web workflows and permissions.
+- 52 automated tests cover forms, translation, publishing, membership, cascades, the web workflows and permissions.
 - A dry run of the Lookup Service sync matched 1,299 existing inventory hosts by name.
 - On PostgreSQL 15: the test suite passes, and the production import, a full publish (1.4 s) and a live Lookup Service sync all ran, with published output still matching PWA.
 
@@ -135,6 +139,7 @@ pwa/models.py      tables                    pwa/services.py   membership, usage
 pwa/specforms.py   forms + validation        pwa/publish.py    templates and static publishing
 pwa/authz.py       roles and grants          pwa/lookup.py     Lookup Service sync
 pwa/importer.py    one-time import from PWA  pwa/compat.py     semantic template comparison
+pwa/testinfo.py    test-type help, tool support  pwa/reports.py  configuration analyses
 pwa/web/           Flask app, pages          pwa/specs/        schemas from pScheduler and pSConfig
 tools/             baseline fetch, import check              tests/   pytest suite
 ```

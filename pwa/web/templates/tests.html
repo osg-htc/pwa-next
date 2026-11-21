@@ -2,25 +2,33 @@
 {% block title %}Tests{% endblock %}
 {% block main %}
 <h1>Tests</h1>
-<p class="lead">A test says what to measure and how often. The same test can be used by many meshes.</p>
+<p class="lead">A test says what to measure and how often. The same test can be used by many meshes. <a href="{{ url_for('ui.test_types') }}">What are the test types, and which should I use?</a></p>
 {% if access.can("create", "test") %}
 <form method="get" action="{{ url_for('ui.test_new') }}" class="inline">
-  <label for="type">New test of type</label>
-  <select id="type" name="type">{% for t in test_types %}<option value="{{ t }}">{{ friendly.get(t, t) }}</option>{% endfor %}</select>
+  <label for="newtype">New test of type</label>
+  <select id="newtype" name="type">
+    {% for group, label in [("mesh", "For measurement meshes"), ("special", "For particular monitoring jobs"), ("testing", "For testing pScheduler")] %}
+    <optgroup label="{{ label }}">{% for t in test_types if use_of(t) == group %}<option value="{{ t }}">{{ title(t) }} ({{ t }})</option>{% endfor %}</optgroup>
+    {% endfor %}
+  </select>
   <button>Create</button>
 </form>
 {% endif %}
-<table>
-  <thead><tr><th>Test</th><th>Type</th><th>Runs</th><th>Tool</th><th>Used by</th><th></th></tr></thead>
-  {% for t in tests %}
-  <tr>
-    <td><a href="{{ url_for('ui.test', ident=t.id) }}">{{ t.name }}</a></td>
-    <td>{{ friendly.get(t.type, t.type) }}</td>
-    <td>{% if t.repeat %}every {{ t.repeat|duration }}{% else %}continuously{% endif %}</td>
-    <td class="quiet">{{ (t.tools or [])|join(", ") }}</td>
-    <td>{% set n = (used.get(t.id) or [])|length %}{% if n %}{{ n }} mesh{{ "" if n == 1 else "es" }}{% else %}<span class="quiet">not used</span>{% endif %}</td>
-    <td>{% if problems[t.id] %}<span class="pill bad" title="{{ problems[t.id]|join('; ') }}">invalid</span>{% endif %}</td>
-  </tr>
-  {% endfor %}
-</table>
+<form method="get" class="filters" hx-get="{{ url_for('ui.tests') }}" hx-target="#rows" hx-push-url="true"
+      hx-trigger="input changed delay:200ms from:find input[type=search], change from:find select">
+  <input type="search" name="q" value="{{ f.q }}" placeholder="Name, description or type…" autofocus>
+  <select name="type"><option value="">Any type</option>{% for t in types_here %}<option value="{{ t }}" {% if f.type == t %}selected{% endif %}>{{ title(t) }}</option>{% endfor %}</select>
+  <select name="mesh"><option value="">In any mesh</option>{% for x in meshes %}<option value="{{ x.id }}" {% if f.mesh == x.id|string %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select>
+  <select name="state">
+    {% for value, label in [("", "Used or not"), ("used", "Used by an enabled task"), ("disabled", "Only in disabled tasks"), ("unused", "Not used anywhere"), ("problems", "Has problems")] %}
+    <option value="{{ value }}" {% if f.state == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="runs"><option value="">Any schedule</option><option value="continuous" {% if f.runs == "continuous" %}selected{% endif %}>Continuous</option>
+    {% for r in intervals_here %}<option value="{{ r }}" {% if f.runs == r %}selected{% endif %}>every {{ r|duration }}</option>{% endfor %}</select>
+  <select name="tool"><option value="">Any tool</option>{% for t in tools_here %}<option value="{{ t }}" {% if f.tool == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <select name="ipv">{% for v in [""] + ipv_here %}<option value="{{ v }}" {% if f.ipv == v %}selected{% endif %}>{{ {"": "Any IP version", "4": "IPv4 only", "6": "IPv6 only", "any": "IPv4 or IPv6 (not forced)"}.get(v, v) }}</option>{% endfor %}</select>
+  <a class="quiet" href="{{ url_for('ui.tests') }}">clear</a>
+  <noscript><button>Filter</button></noscript>
+</form>
+<div id="rows">{% include "_test_rows.html" %}</div>
 {% endblock %}

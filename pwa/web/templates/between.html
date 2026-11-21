@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import picker with context %}
+{% block title %}Between hosts{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.reports_page') }}">Reports</a> ›</p>
+<h1>What is tested {% if a and b %}between {{ a.hostname }} and {{ b.hostname }}{% elif a %}with {{ a.hostname }}{% else %}between two hosts{% endif %}</h1>
+<form method="get" class="inline">
+  {{ picker("host", "a", a, "First host…") }}
+  {{ picker("host", "b", b, "Second host (optional)…") }}
+  <button class="secondary">Look up</button>
+</form>
+{% if a %}
+<section class="card">
+  {% if rows %}
+  <table>
+    <thead><tr><th>Mesh</th><th>Task</th><th>Test</th><th>Runs</th><th>Direction</th></tr></thead>
+    {% for r in rows %}
+    <tr><td><a href="{{ url_for('ui.mesh', ident=r.task.mesh.id) }}">{{ r.task.mesh.name }}</a></td><td>{{ r.task.task.name }}</td>
+      <td><a href="{{ url_for('ui.test', ident=r.task.test.id) }}">{{ r.task.test.name }}</a> <span class="quiet">{{ title(r.task.type) }}</span></td>
+      <td>{% if r.task.test.repeat %}every {{ r.task.test.repeat|duration }}{% else %}continuously{% endif %}</td><td>{{ r.direction }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="quiet">Nothing: no enabled task {% if b %}measures between these two hosts{% else %}includes this host{% endif %}.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}
