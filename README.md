@@ -27,6 +27,14 @@ PWA_TEST_DATABASE_URL=postgresql://USER:PASSWORD@HOST/pwa_test .venv/bin/python 
 
 `dev.env` uses `PWA_AUTH=dev`, which lets anyone sign in as anyone. It is for a loopback address only.
 
+## Packaging and deployment
+
+- `packaging/rehearse.sh [export-dir]` builds the RPM in a clean EL9 container, installs it with EL9's own packages, runs the tests on SQLite and PostgreSQL, and checks it under Apache. The RPM lands in `packaging/out/`.
+- `packaging/rehearse-ansible.sh <podman-network>` runs the Ansible playbook in `deploy/ansible/` for real in an EL9 container with systemd.
+- `deploy/apache-pwa.conf` is the Apache configuration; `deploy/ansible/configs/pwa/README.md` describes an AGLT2-style deployment.
+
+EL9's Jinja2 is 2.11, older than the 3.0 that `requirements-dev.txt` installs; the rehearsal is what checks the real combination.
+
 ## Commands
 
 ```

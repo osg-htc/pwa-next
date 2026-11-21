@@ -118,8 +118,9 @@ Checked on 2026-11-20 against the production OSG/WLCG PWA (read-only):
 
 | Item | Note |
 |---|---|
-| Deployment | The Apache configuration in `deploy/` is a sketch and has not been run. No RPM. |
-| CILogon | Client registration, the claim names, and which eduGAIN identity providers CILogon admits all need confirming against a real login. |
+| Deployment | Rehearsed in EL9 containers only (`packaging/rehearse.sh`, `packaging/rehearse-ansible.sh`): RPM build and install, PostgreSQL 13, Apache with mod_wsgi and password sign-in, and the Ansible playbook. Not yet on a real host. SELinux enforcing is not handled (AGLT2 runs permissive). |
+| Flask and Werkzeug security fixes | EL9 gets both from EPEL at 2.0.3, with no CVE fixes in the package changelogs. Mitigated by design (Apache authenticates before any request reaches Python; published and static files are served by Apache; the debugger is never enabled), but which known issues still apply to signed-in users has not been assessed. |
+| CILogon | The mod_auth_openidc configuration parses but has never met CILogon. Client registration, the claim names, and which eduGAIN identity providers CILogon admits all need confirming against a real login. |
 | Linking the existing PWA accounts | Implemented (see docs/MIGRATION.md) but not yet exercised with a real CILogon login. In the OSG/WLCG instance only 6 of the 51 people who own something have a CILogon identity on record; the rest use local passwords and will need an administrator's one-click confirmation at first login. |
 | Scripted access | No REST API or API tokens yet. PWA's admin API is not reproduced. |
 | pScheduler-side validation | Validation uses the bundled schemas; asking a live pScheduler (`psconfig validate` does) would catch what schemas cannot. |

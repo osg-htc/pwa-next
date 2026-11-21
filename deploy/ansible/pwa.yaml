@@ -21,6 +21,7 @@
     - pwa_signin: basic
     # Made service administrators at first sign-in: htpasswd names or CILogon subjects, comma-separated.
     - pwa_admins: ""
+    - pwa_signin_file: "{{ '/etc/httpd/pwa-htpasswd' if pwa_signin == 'basic' else '/etc/httpd/pwa-oidc-client.conf' }}"
     # Production PWA to compare against every night (empty = no comparison).
     - pwa_shadow_of: ""
   tasks:
@@ -105,13 +106,13 @@
 
   - name: is the sign-in file in place
     stat:
-      path: "{{ '/etc/httpd/pwa-htpasswd' if pwa_signin == 'basic' else '/etc/httpd/pwa-oidc-client.conf' }}"
-    register: pwa_signin_file
+      path: "{{ pwa_signin_file }}"
+    register: pwa_signin_stat
 
   - name: stop here until the sign-in file exists (see the top of this playbook)
     fail:
-      msg: "{{ pwa_signin_file.invocation.module_args.path }} is missing; httpd would not start. Create it by hand, then run this playbook again."
-    when: not pwa_signin_file.stat.exists
+      msg: "{{ pwa_signin_file }} is missing; httpd would not start. Create it by hand, then run this playbook again."
+    when: not pwa_signin_stat.stat.exists
 
   - name: start httpd
     service:
