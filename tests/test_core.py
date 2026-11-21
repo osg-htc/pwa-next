@@ -208,3 +208,16 @@ def test_import_users_from_the_old_auth_service(tmp_path, db):
     grants = {(g.principal_id, g.scope_type) for g in db.query(m.Grant)}
     assert grants == {(known.id, "hostgroup"), (people["Password Only"].id, "hostgroup"),
                       (known.id, "test"), (people["Password Only"].id, "mesh")}
+
+
+def test_data_files_read_without_a_utf8_locale():
+    """Apache runs the application with an ASCII locale; data files must not depend on it."""
+    import subprocess
+    import sys
+    code = ("from pwa import testinfo, specforms, publish; "
+            "testinfo.guidance('throughput'); specforms.fields('tests', 'throughput'); publish.psconfig_schema()")
+    env = {"LANG": "C", "LC_ALL": "C", "PYTHONUTF8": "0", "PYTHONIOENCODING": "ascii",
+           "PATH": os.environ.get("PATH", "")}
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    r = subprocess.run([sys.executable, "-X", "utf8=0", "-c", code], cwd=root, env=env, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[-500:]

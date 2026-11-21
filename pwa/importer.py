@@ -243,7 +243,7 @@ def import_pwa(session, export_dir):
             if required:
                 raise FileNotFoundError(path)
             return []
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return _plain(json.load(f))
 
     people = {str(u["id"]): u for u in load("users", required=False)}

@@ -144,6 +144,10 @@ cp /tmp/pwa-basic.conf /etc/httpd/conf.d/pwa.conf
 
 step "errors logged by Apache during the run"
 grep -c -i -E 'traceback|\[wsgi:error\]' /var/log/httpd/*error_log | sed 's/^/  /' || true
+if [ $failed != 0 ]; then
+    echo "--- last error log lines"
+    tail -n 40 /var/log/httpd/ssl_error_log /var/log/httpd/error_log | cut -c1-300
+fi
 
 httpd -k stop
 su postgres -c "pg_ctl -D /var/lib/pgsql/data -m fast stop >/dev/null"
