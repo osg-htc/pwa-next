@@ -20,8 +20,8 @@ DEFAULTS = {
     "tagline": "",
     "about": "",                  # plain text; blank lines separate paragraphs; URLs become links
     "links": [],                  # [{"label": ..., "url": ...}]
-    "accent": "#0b5cab",
-    "header": "#14283d",
+    "accent": "#1565c0",          # pwa-next logo blue
+    "header": "#0b2a4a",          # pwa-next logo navy
     "contact": "",                # e-mail address or URL for questions
 }
 

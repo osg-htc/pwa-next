@@ -42,7 +42,7 @@ def create_app(overrides=None):
         g.user = _current_user(app, g.db)
         g.access = authz.Access(g.db, g.user)
         if request.endpoint in ("static", "pub.config_index", "pub.config", "pub.auto",
-                                "dev.login", "dev.login_as", "ui.brand_logo"):
+                                "dev.login", "dev.login_as", "ui.brand_logo", "ui.favicon"):
             return None
         if g.user is None:
             if app.config["AUTH"] == "dev":

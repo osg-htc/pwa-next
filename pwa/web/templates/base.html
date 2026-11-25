@@ -5,13 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{% endblock %} · {{ site_name }}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='pwa.css') }}">
+<link rel="icon" href="{{ url_for('static', filename='brand/favicon.svg') }}" type="image/svg+xml">
+<link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/apple-touch-icon.png') }}">
 <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='pwa.js') }}" defer></script>
 <style>:root { --accent: {{ brand.accent }}; --header: {{ brand.header }}; }</style>
 </head>
 <body data-csrf="{{ csrf }}">
 <header class="top">
-  <a class="brand" href="{{ url_for('ui.dashboard') }}">{% if brand.has_logo %}<img src="{{ url_for('ui.brand_logo') }}" alt="">{% endif %}<span>{{ site_name }}{% if brand.tagline %}<small>{{ brand.tagline }}</small>{% endif %}</span></a>
+  <a class="brand" href="{{ url_for('ui.dashboard') }}">{% if brand.has_logo %}<img src="{{ url_for('ui.brand_logo') }}" alt="">{% else %}<img class="icon" src="{{ url_for('static', filename='brand/pwa-next-icon.svg') }}" alt="">{% endif %}<span>{{ site_name }}{% if brand.tagline %}<small>{{ brand.tagline }}</small>{% endif %}</span></a>
   {% if user %}
   <nav>
     {% set here = request.endpoint or "" %}

@@ -115,6 +115,8 @@ for page in meshes groups tests hosts archives access audit; do
     check "page /$page" "200" "$(code -u tester:testpw $S/$page)"
 done
 check "stylesheet served by Apache itself, no login" "200 text/css" "$(curl -k -s -o /dev/null -w '%{http_code} %{content_type}' $S/static/pwa.css)"
+check "logo served by Apache, no login" "200 image/svg+xml" "$(curl -k -s -o /dev/null -w '%{http_code} %{content_type}' $S/static/brand/pwa-next-icon.svg)"
+check "favicon, no login" "200" "$(code $S/favicon.ico)"
 check "first sign-in created an administrator" "t" \
     "$(su postgres -c "psql -At -d pwa -c \"select is_admin from users where subject='tester'\"")"
 # A change through the browser path: session cookie + CSRF token, repeated so

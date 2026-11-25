@@ -20,6 +20,7 @@ AliasMatch ^/pub/auto/(.+)$    /var/lib/pwa/pub/auto/$1
 # Stylesheet and scripts also come straight from Apache, so a visitor who has
 # not signed in never reaches the application at all.
 Alias /static/ /usr/share/pwa-next/static/
+Alias /favicon.ico /usr/share/pwa-next/static/brand/favicon.ico
 <Directory /usr/share/pwa-next/static>
     Options FollowSymLinks
     AllowOverride None
@@ -70,6 +71,10 @@ OIDCPassClaimsAs        environment
     Require all granted
 </Location>
 <Location /static/>
+    AuthType None
+    Require all granted
+</Location>
+<Location /favicon.ico>
     AuthType None
     Require all granted
 </Location>

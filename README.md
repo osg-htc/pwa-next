@@ -1,8 +1,15 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lockup/horizontal-for-dark.svg">
+    <img alt="pwa-next" src="docs/brand/lockup/horizontal-for-light.svg" width="420">
+  </picture>
+</p>
+
 # pwa-next
 
 A replacement for perfSONAR's pSConfig Web Admin: define tests, host groups and meshes in a browser, and publish them as pSConfig templates. See [DESIGN.md](DESIGN.md) for what it does and why it is built this way, and [docs/MIGRATION.md](docs/MIGRATION.md) for moving an existing PWA over.
 
-Status: working prototype. Not deployed, not packaged.
+Status: working prototype. Packaged as an EL9 RPM and rehearsed in containers; not deployed yet.
 
 ## Try it
 
@@ -50,6 +57,10 @@ Settings are environment variables, or `KEY=value` lines in the file named by `P
 ## Licence
 
 Apache License 2.0; see [LICENSE](LICENSE). The bundled files below keep their own licences.
+
+## Logo
+
+The logo kit (icon, favicons, lockups for light and dark backgrounds, social card, colour values) is in [docs/brand](docs/brand/README.txt). The application uses copies in `pwa/web/static/brand/`. The wordmark is set in Inter (SIL Open Font License), converted to outlines.
 
 ## Bundled third-party files
 

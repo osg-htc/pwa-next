@@ -1061,6 +1061,12 @@ def brand_logo():
     return resp
 
 
+@ui.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(current_app.root_path, "static", "brand"), "favicon.ico",
+                               mimetype="image/vnd.microsoft.icon", max_age=86400)
+
+
 @ui.route("/about")
 def about():
     counts = {"meshes": g.db.query(m.Mesh).count(), "groups": g.db.query(m.HostGroup).count(),

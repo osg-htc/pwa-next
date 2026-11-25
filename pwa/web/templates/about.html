@@ -23,5 +23,5 @@
 {% if admins %}
 <section class="card"><h2>Service administrators</h2><p>{% for a in admins %}{{ a.label }}{% if not loop.last %}, {% endif %}{% endfor %}</p></section>
 {% endif %}
-<p class="quiet">pwa-next {{ app_version }}, a replacement for pSConfig Web Admin.</p>
+<p class="powered"><img src="{{ url_for('static', filename='brand/horizontal-for-light.svg') }}" alt="pwa-next"> version {{ app_version }}, a replacement for pSConfig Web Admin. <a href="https://github.com/osg-htc/pwa-next">Source</a></p>
 {% endblock %}

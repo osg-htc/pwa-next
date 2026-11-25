@@ -58,3 +58,22 @@ def test_logo_upload_and_safe_serving(app, as_user):
     assert r.mimetype == "image/svg+xml" and "script-src" not in r.headers["Content-Security-Policy"]
     b.post("/settings/branding", {"action": "remove-logo"})
     assert b.get("/branding/logo").status_code == 404
+
+
+def test_default_logo_and_favicon(app, as_user):
+    page = as_user("alice").get("/").data.decode()
+    assert 'src="/static/brand/pwa-next-icon.svg"' in page and 'href="/static/brand/favicon.svg"' in page
+    assert "--accent: #1565c0; --header: #0b2a4a;" in page
+    r = app.test_client().get("/favicon.ico")            # browsers ask before anyone signs in
+    assert r.status_code == 200 and r.data[:4] == b"\x00\x00\x01\x00"
+    assert app.test_client().get("/static/brand/horizontal-for-light.svg").status_code == 200
+    about = as_user("alice").get("/about").data.decode()
+    assert "brand/horizontal-for-light.svg" in about
+
+
+def test_uploaded_logo_replaces_the_default(app, as_user):
+    as_user("admin").post("/settings/branding", {"accent": "#1565c0", "header": "#0b2a4a",
+                                                 "logo": (io.BytesIO(PNG), "logo.png")},
+                          content_type="multipart/form-data")
+    page = as_user("alice").get("/").data.decode()
+    assert 'src="/branding/logo"' in page and "pwa-next-icon.svg" not in page
