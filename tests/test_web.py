@@ -157,3 +157,16 @@ def test_security_headers(app, as_user):
     assert "no-store" not in published.headers.get("Cache-Control", "")
     big = as_user("admin").post("/settings/branding", data={"_csrf": "tok", "about": "x" * (3 * 1024 * 1024)})
     assert big.status_code == 413                       # MAX_CONTENT_LENGTH: the form is not parsed
+
+
+def test_problem_is_explained_on_the_test_page(app, as_user, db):
+    bad = m.Test(name="Multistream", type="throughput", spec={"duration": "PT25S", "streams": 5}, repeat="PT6H")
+    db.add(bad)
+    db.commit()
+    b = as_user("admin")
+    row = b.get("/tests?state=problems").data.decode()
+    assert 'href="/tests/%d#problems"' % bad.id in row and "did you mean" in row
+    page = b.get("/tests/%d" % bad.id).data.decode()
+    assert 'id="problems"' in page and "“streams” is not an option of throughput tests; did you mean “parallel”?" in page
+    assert "No enabled task uses it" in page
+    assert 'id="problems"' not in b.get("/tests/%d" % app.ids["test"]).data.decode()

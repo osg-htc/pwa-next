@@ -134,6 +134,12 @@ def translate_testspec(service_type, specs, schedule_type):
         if "probe-type" in spec and "protocol" not in spec and spec["probe-type"] == "udp":
             spec["udp"] = True
         spec.pop("probe-type", None)
+    if ttype == "throughput" and "streams" in spec:
+        # PWA before late 2024 saved the stream count as "streams" (PWA issue #234).
+        if "parallel" not in spec:
+            spec["parallel"] = spec["streams"]
+            notes.append("“streams” renamed to “parallel” (PWA issue #234)")
+        del spec["streams"]
     spec.pop("tool", None)
     spec.pop("force-bidirectional", None)
 

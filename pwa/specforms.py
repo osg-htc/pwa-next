@@ -305,6 +305,21 @@ def schema_version(kind, name, spec):
     return len(versions) - 1
 
 
+# Option names that older tools (PWA, MeshConfig) used for something that exists under another name.
+ALIASES = {"streams": "parallel", "tos-bits": "ip-tos", "omit-interval": "omit", "waittime": "sendwait",
+           "sample-count": "packet-count", "ipv4-only": "ip-version", "ipv6-only": "ip-version"}
+
+
+def unknown_option_message(kind, name, option, allowed):
+    import difflib
+    what = "%s tests" % name if kind == "tests" else "the %s archiver" % name
+    guess = ALIASES.get(option) if ALIASES.get(option) in allowed else None
+    if not guess:
+        close = difflib.get_close_matches(option, sorted(allowed - {"schema"}), n=1, cutoff=0.6)
+        guess = close[0] if close else None
+    return "“%s” is not an option of %s%s" % (option, what, "; did you mean “%s”?" % guess if guess else "")
+
+
 def validate(kind, name, spec):
     """Return a list of human-readable problems (empty when the spec is fine)."""
     if not known(kind, name):
@@ -325,7 +340,27 @@ def validate(kind, name, spec):
         where = "/".join(str(p) for p in e.path)
         msg = e.message
         if e.validator == "additionalProperties":
-            msg = msg.replace("Additional properties are not allowed", "Unknown option")
+            allowed = set((schema.get("properties") or {}).keys())
+            unknown = sorted(set(e.instance) - allowed) if isinstance(e.instance, dict) else []
+            msg = "; ".join(unknown_option_message(kind, name, u, allowed) for u in unknown) or msg
+        limits = {"maximum": "at most", "minimum": "at least", "exclusiveMaximum": "less than",
+                  "exclusiveMinimum": "more than"}
+        if e.validator in limits:
+            bound = e.validator_value
+            if e.validator in ("maximum", "minimum") and (e.schema or {}).get(
+                    "exclusive" + e.validator.capitalize()) is True:        # draft-04 style
+                bound_word = "less than" if e.validator == "maximum" else "more than"
+            else:
+                bound_word = limits[e.validator]
+            bound = int(bound) if isinstance(bound, float) and bound == int(bound) else bound
+            msg = "must be %s %s (it is %s)" % (bound_word, bound, e.instance)
+        elif e.validator == "enum":
+            msg = "must be one of %s (it is %r)" % (", ".join(str(x) for x in e.validator_value), e.instance)
+        elif e.validator == "type":
+            msg = "must be %s (it is %r)" % ({"integer": "a whole number", "number": "a number",
+                                              "string": "text", "boolean": "true or false",
+                                              "object": "a JSON object", "array": "a list"}.get(
+                                              e.validator_value, e.validator_value), e.instance)
         if e.validator == "pattern" and "P(?!$)" in str(e.validator_value):
             msg = "%r is not a duration (use ISO 8601 such as PT30S, or 30s / 5m / 6h)" % e.instance
         errors.append("%s: %s" % (where, msg) if where else msg)

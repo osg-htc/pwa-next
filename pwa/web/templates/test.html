@@ -5,6 +5,16 @@
 <p class="crumbs"><a href="{{ url_for('ui.tests') }}">Tests</a> ›</p>
 <h1>{{ test.name or "New test" }} <span class="pill">{{ friendly.get(test.type, test.type) }}</span></h1>
 {{ errors_box(errors) }}
+{% if problems and not errors %}
+<div class="flash error" id="problems">
+  <strong>pScheduler would reject this test as it stands.</strong>
+  <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+  {% set held = usage|selectattr("enabled")|list %}
+  {% if held %}<p>So these tasks are not being published: {% for t in held %}<a href="{{ url_for('ui.mesh', ident=t.mesh.id) }}">{{ t.mesh.name }}</a>: {{ t.name }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>
+  {% else %}<p>No enabled task uses it, so nothing is held back.</p>{% endif %}
+  <p>Fix the option below (options this page has no field for are under “Additional options as JSON”) and save.</p>
+</div>
+{% endif %}
 <section class="card help-box">
   <p><b>{{ type_title }}.</b> {{ guide.summary or "" }} <a href="{{ url_for('ui.test_type', name=test.type) }}">What it does, when to use it, and which tools support which options</a></p>
   {% if addressing == "each" %}<p class="help">In a task, every host in the host group runs this test on its own; the hosts are not tested against each other.</p>

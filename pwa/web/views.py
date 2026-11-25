@@ -675,6 +675,7 @@ def _test_form(test, form=None, errors=()):
         type_title=testinfo.title(test.type), addressing=testinfo.addressing(test.type),
         friendly=specforms.FRIENDLY_TYPES,
         intervals=COMMON_INTERVALS, usage=services.test_usage(g.db, test) if test.id else [],
+        problems=_test_problems(test) if test.id else [],
         can_edit=(g.access.can("edit", "test", test) if test.id else g.access.can("create", "test")),
         can_delete=bool(test.id) and g.access.can("delete", "test", test),
         **(access_context("test", test) if test.id else {"grants": [], "can_grant": False}))

@@ -25,8 +25,8 @@ def test_fields_come_from_the_schema_with_dropdowns():
 
 def test_validation_and_schema_version():
     assert specforms.validate("tests", "throughput", {"duration": "PT25S", "ip-version": 6}) == []
-    assert "maximum" in specforms.validate("tests", "latency", {"bucket-width": 1})[0]
-    assert "Unknown option" in specforms.validate("tests", "rtt", {"bogus": 1})[0]
+    assert "must be less than 1" in specforms.validate("tests", "latency", {"bucket-width": 1})[0]
+    assert "is not an option of rtt tests" in specforms.validate("tests", "rtt", {"bogus": 1})[0]
     assert "duration" in specforms.validate("tests", "throughput", {"duration": "25"})[0]
     assert specforms.schema_version("tests", "throughput", {"duration": "PT25S"}) == 1
     assert specforms.schema_version("tests", "throughput", {"single-ended": True}) == 2
@@ -221,3 +221,8 @@ def test_data_files_read_without_a_utf8_locale():
     root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     r = subprocess.run([sys.executable, "-X", "utf8=0", "-c", code], cwd=root, env=env, capture_output=True, text=True)
     assert r.returncode == 0, r.stderr[-500:]
+
+
+def test_translate_pwa_streams_bug():
+    t = importer.translate_testspec("bwctl", {"interval": 21600, "duration": 25, "streams": 5}, "interval")
+    assert t["spec"] == {"duration": "PT25S", "parallel": 5} and "PWA issue #234" in t["notes"][0]

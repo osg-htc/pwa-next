@@ -8,7 +8,7 @@
     <td>{% if t.repeat %}every {{ t.repeat|duration }}{% else %}continuously{% endif %}</td>
     <td class="quiet">{{ (t.tools or [])|join(", ") }}</td>
     <td>{% set n = (enabled_in.get(t.id) or [])|length %}{% set all = (used.get(t.id) or [])|length %}{% if n %}{{ n }} mesh{{ "" if n == 1 else "es" }}{% elif all %}<span class="quiet">disabled tasks only</span>{% else %}<span class="quiet">not used</span>{% endif %}</td>
-    <td>{% if problems[t.id] %}<span class="pill bad" title="{{ problems[t.id]|join('; ') }}">problem</span>{% endif %}</td>
+    <td>{% if problems[t.id] %}<a class="pill bad" href="{{ url_for('ui.test', ident=t.id) }}#problems" title="{{ problems[t.id]|join('; ') }}">problem: {{ problems[t.id][0]|truncate(60) }}</a>{% endif %}</td>
   </tr>
   {% else %}
   <tr><td colspan="6" class="quiet">No tests match.</td></tr>
