@@ -5,7 +5,7 @@
 Please report security problems privately, not in a public issue or pull request.
 
 - E-mail **smckee@umich.edu** with "pwa-next security" in the subject.
-- Once this repository is public, you can also use GitHub's private vulnerability reporting: the "Report a vulnerability" button on the [Security tab](https://github.com/osg-htc/pwa-next/security).
+- Or use GitHub's private vulnerability reporting: the "Report a vulnerability" button on the [Security tab](https://github.com/osg-htc/pwa-next/security).
 
 Please include what you found, how to reproduce it, the version or commit, and what an attacker could do with it. If you have a fix in mind, describe it, but please do not open a public pull request for it until the problem has been fixed and announced.
 
