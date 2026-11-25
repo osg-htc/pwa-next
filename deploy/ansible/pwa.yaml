@@ -25,12 +25,16 @@
   #   pwa_admins       made service administrators at first sign-in: htpasswd names or
   #                    CILogon subjects, comma-separated
   #   pwa_shadow_of    production PWA to compare against every night (empty = none)
+  #   pwa_branding     name of a branding in configs/pwa: branding-<name>.json, and optionally a logo
+  #                    branding-<name>-logo.svg or .png (empty = the pwa-next defaults). Applied only
+  #                    when those files change, so edits made on the Branding page are kept until then.
   - name: defaults for settings the inventory does not give
     set_fact:
       pwa_public_name: "{{ pwa_public_name | default(ansible_facts.fqdn) }}"
       pwa_signin: "{{ pwa_signin | default('basic') }}"
       pwa_admins: "{{ pwa_admins | default('') }}"
       pwa_shadow_of: "{{ pwa_shadow_of | default('') }}"
+      pwa_branding: "{{ pwa_branding | default('') }}"
 
   # Checked first, so that nothing below can leave httpd with a configuration it cannot start with.
   - name: is the sign-in file in place
@@ -109,6 +113,34 @@
     changed_when: false
 
   # Also writes the (possibly empty) index, so /pub/config answers from the start.
+  - name: branding settings for this deployment
+    copy:
+      src: '{{ stashdir }}/branding-{{ pwa_branding }}.json'
+      dest: /etc/pwa/branding.json
+      owner: root
+      group: pwa
+      mode: '0644'
+    register: pwa_brand_file
+    when: pwa_branding | length > 0
+
+  - name: branding logo, if the branding has one
+    copy:
+      src: '{{ item }}'
+      dest: /etc/pwa/branding-logo
+      owner: root
+      group: pwa
+      mode: '0644'
+    loop: "{{ query('fileglob', playbook_dir + '/' + stashdir + '/branding-' + pwa_branding + '-logo.*') if pwa_branding | length > 0 else [] }}"
+    register: pwa_brand_logo
+
+  - name: apply the branding (only when its files changed)
+    command: >-
+      runuser -u pwa -- env PWA_CONFIG=/etc/pwa/pwa.env pwa branding set /etc/pwa/branding.json
+      {{ '--logo /etc/pwa/branding-logo' if (pwa_brand_logo.results | default([])) | length > 0 else '' }}
+    args:
+      chdir: /tmp
+    when: pwa_branding | length > 0 and (pwa_brand_file is changed or pwa_brand_logo is changed)
+
   - name: publish
     command: runuser -u pwa -- env PWA_CONFIG=/etc/pwa/pwa.env pwa publish
     args:

@@ -26,11 +26,11 @@ podman cp "$rpm" $name:/root/pwa-next.rpm
 inside dnf -y -q install /root/pwa-next.rpm >/dev/null
 inside mkdir -p /root/ansible/playbooks /root/ansible/configs/pwa
 podman cp "$here/deploy/ansible/pwa.yaml" $name:/root/ansible/playbooks/pwa.yaml
-for f in pwa.env.j2 pwa.conf.j2 pwa-shadow-check.j2; do
-    podman cp "$here/deploy/ansible/configs/pwa/$f" $name:/root/ansible/configs/pwa/$f
+for f in "$here"/deploy/ansible/configs/pwa/*; do
+    podman cp "$f" $name:/root/ansible/configs/pwa/
 done
 # Settings arrive as inventory host variables, as they will at the site.
-inside bash -c 'printf "[PWANext]\nlocalhost ansible_connection=local pwa_public_name=localhost pwa_admins=tester\n" > /root/ansible/inventory'
+inside bash -c 'printf "[PWANext]\nlocalhost ansible_connection=local pwa_public_name=localhost pwa_admins=tester pwa_branding=wlcg\n" > /root/ansible/inventory'
 play() { inside bash -c "cd /root/ansible/playbooks && ansible-playbook -i ../inventory pwa.yaml $* 2>&1"; }
 
 echo "=== first run: must stop and ask for the sign-in file"
@@ -60,6 +60,10 @@ check "published index, no login" "200" "$(code https://localhost/pub/config)"
 check "published index over plain HTTP" "200" "$(code http://localhost/pub/config)"
 check "application refuses anonymous visitors" "401" "$(code https://localhost/)"
 check "signed-in overview" "200" "$(code -u tester:testpw https://localhost/)"
+if ls "$here"/deploy/ansible/configs/pwa/branding-wlcg-logo.* >/dev/null 2>&1; then
+    check "the branding's logo is served" "200" "$(code -u tester:testpw https://localhost/branding/logo)"
+fi
+check "comes up with the WLCG branding" "1" "$(inside curl -k -s -u tester:testpw https://localhost/ | grep -c '<title>Overview · WLCG perfSONAR Configuration (test)</title>')"
 check "inventory variable made the first user an administrator" "t" "$(inside runuser -u postgres -- psql -At -d pwa -c "select is_admin from users where subject='tester'")"
 check "stylesheet without login" "200" "$(code https://localhost/static/pwa.css)"
 check "inventory timer is running and enabled" "active enabled" "$(inside systemctl is-active pwa-lookup-sync.timer) $(inside systemctl is-enabled pwa-lookup-sync.timer)"

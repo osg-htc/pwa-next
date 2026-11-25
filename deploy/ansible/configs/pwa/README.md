@@ -8,6 +8,7 @@ Drafts for review. Nothing here has been committed to the AGLT2 SVN.
 |---|---|
 | `../../pwa.yaml` | `playbooks/pwa.yaml` |
 | `pwa.env.j2`, `pwa.conf.j2`, `pwa-shadow-check.j2` | `configs/pwa/` |
+| `branding-wlcg.json` (and optionally `branding-wlcg-logo.svg` or `.png`) | `configs/pwa/`; chosen per host with `pwa_branding: wlcg` |
 | `pwa-export-for-shadow.sh` | not in Ansible: copied by hand to the production PWA host |
 
 The playbook was rehearsed in an EL9 container with systemd (`packaging/rehearse-ansible.sh`): install, PostgreSQL setup, settings, Apache with password sign-in, timer, and a second run that changes nothing.
@@ -16,7 +17,7 @@ The playbook was rehearsed in an EL9 container with systemd (`packaging/rehearse
 
 Only the inventory (`inventory_public/03-agl.yaml`); the firewall template needs no change.
 
-1. A group `PWANext` holding the host under its short and full names, with its settings as host variables (`pwa_public_name`, `pwa_admins`, later `pwa_signin: oidc` and `pwa_shadow_of`).
+1. A group `PWANext` holding the host under its short and full names, with its settings as host variables (`pwa_public_name`, `pwa_admins`, `pwa_branding`, later `pwa_signin: oidc` and `pwa_shadow_of`).
 2. `PWANext` as a child of `WebServers`. That brings three things that already exist for web servers:
    - `package.yaml` installs and starts httpd and mod_ssl;
    - `hostcert.yaml` installs the certificate and points `ssl.conf` at it;
