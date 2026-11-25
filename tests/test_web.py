@@ -170,3 +170,10 @@ def test_problem_is_explained_on_the_test_page(app, as_user, db):
     assert 'id="problems"' in page and "“streams” is not an option of throughput tests; did you mean “parallel”?" in page
     assert "No enabled task uses it" in page
     assert 'id="problems"' not in b.get("/tests/%d" % app.ids["test"]).data.decode()
+
+
+def test_help_points_to_the_issue_tracker(app, as_user):
+    page = as_user("alice").get("/help").data.decode()
+    assert 'id="bugs"' in page and 'href="https://github.com/osg-htc/pwa-next/issues"' in page
+    assert "/issues/new/choose" in page and "SECURITY.md" in page
+    assert 'href="/help#bugs"' in as_user("alice").get("/meshes").data.decode()

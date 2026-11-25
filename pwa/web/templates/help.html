@@ -68,6 +68,13 @@
   </ul>
 </section>
 
+<section class="card" id="bugs">
+  <h2>Bugs and feature requests</h2>
+  <p>Found something that does not work, or have an idea that would make your job easier? Please tell us in the <a href="{{ issues_url }}" rel="noopener">issue tracker</a>{% if issues_url.startswith("https://github.com/") %} (<a href="{{ issues_url }}/new/choose" rel="noopener">open a new issue</a>; it needs a GitHub account){% endif %}.</p>
+  <p>It helps to include which page you were on, what you did, what you expected, and what happened instead; a screenshot is welcome. This is pwa-next version {{ app_version }}.</p>
+  <p class="help">Problems with a particular mesh or host (a missing site, wrong tests) are for the people who run this service{% if brand.contact %}: {% if "@" in brand.contact and "://" not in brand.contact %}<a href="mailto:{{ brand.contact }}">{{ brand.contact }}</a>{% else %}<a href="{{ brand.contact }}" rel="noopener">{{ brand.contact }}</a>{% endif %}{% endif %}. Security problems should never go in a public issue: see the project's <a href="https://github.com/osg-htc/pwa-next/blob/main/SECURITY.md" rel="noopener">security policy</a>.</p>
+</section>
+
 <section class="card">
   <h2>More</h2>
   <ul>

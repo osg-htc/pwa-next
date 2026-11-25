@@ -80,7 +80,7 @@ def create_app(overrides=None):
             dict(branding.DEFAULTS, site_name=app.config["SITE_NAME"], has_logo=False)
         return {"user": g.get("user"), "access": g.get("access"), "csrf": cookie["csrf"],
                 "brand": brand, "site_name": brand["site_name"], "auth_mode": app.config["AUTH"],
-                "app_version": __import__("pwa").__version__, "about_paragraphs": branding.paragraphs,
+                "app_version": __import__("pwa").__version__, "issues_url": app.config["ISSUES_URL"], "about_paragraphs": branding.paragraphs,
                 "scopes": authz.SCOPES, "public_url": app.config["PUBLIC_URL"].rstrip("/")}
 
     @app.template_filter("ago")
