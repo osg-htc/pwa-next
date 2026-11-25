@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}About{% endblock %}
 {% block main %}
-<h1>{% if brand.has_logo %}<img class="logo-preview" src="{{ url_for('ui.brand_logo') }}" alt="">{% endif %}{{ site_name }}</h1>
+<h1>{% if brand.has_logo %}<img class="logo-preview{% if brand.logo_background == 'light' %} plate{% endif %}" src="{{ url_for('ui.brand_logo') }}" alt="">{% endif %}{{ site_name }}</h1>
 {% if brand.tagline %}<p class="lead">{{ brand.tagline }}</p>{% endif %}
 <section class="card about">
   {% for para in about_paragraphs(brand.about) %}

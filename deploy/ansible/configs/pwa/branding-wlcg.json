@@ -4,6 +4,7 @@
   "header": "#0b2a4a",
   "accent": "#1565c0",
   "contact": "",
+  "logo_background": "light",
   "about": "This service defines the perfSONAR measurement meshes used by WLCG and OSG: which hosts test to which, with what tests, and where the results go. It publishes them as pSConfig templates that the perfSONAR hosts at WLCG sites read.\n\nThis is the test instance of pwa-next, the planned replacement for pSConfig Web Admin. It is run by AGLT2 for OSG and WLCG. Changes made here do not reach any perfSONAR host: the production configuration is still served by psconfig.opensciencegrid.org.",
   "links": [
     {"label": "WLCG", "url": "https://wlcg.web.cern.ch/"},

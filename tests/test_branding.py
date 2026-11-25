@@ -105,3 +105,12 @@ def test_help_page_and_filters_trigger_on_every_dropdown(app, as_user):
     assert 'href="/help"' in b.get("/").data.decode()
     tests_page = b.get("/tests").data.decode()
     assert 'from:find select' not in tests_page and 'hx-trigger="input changed delay:200ms from:find input[type=search], change"' in tests_page
+
+
+def test_logo_on_a_light_tile(app, as_user):
+    b = as_user("admin")
+    b.post("/settings/branding", {"accent": "#1565c0", "header": "#0b2a4a", "logo_background": "light",
+                                  "logo": (io.BytesIO(PNG), "logo.png")}, content_type="multipart/form-data")
+    assert 'src="/branding/logo" alt="" class="plate"' in as_user("alice").get("/").data.decode()
+    b.post("/settings/branding", {"accent": "#1565c0", "header": "#0b2a4a"})
+    assert 'class="plate"' not in as_user("alice").get("/").data.decode()

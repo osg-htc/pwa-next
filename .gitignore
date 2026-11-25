@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 .pytest_cache/
 packaging/out/
+deploy/ansible/configs/pwa/branding-*-logo.*

@@ -23,6 +23,7 @@ DEFAULTS = {
     "accent": "#1565c0",          # pwa-next logo blue
     "header": "#0b2a4a",          # pwa-next logo navy
     "contact": "",                # e-mail address or URL for questions
+    "logo_background": "none",    # "light": show the logo on a white tile (for dark-on-transparent logos)
 }
 
 _MAGIC = [
@@ -64,6 +65,7 @@ def validate(form):
         "accent": (form.get("accent") or DEFAULTS["accent"]).strip(),
         "header": (form.get("header") or DEFAULTS["header"]).strip(),
         "links": [],
+        "logo_background": "light" if form.get("logo_background") == "light" else "none",
     }
     for name in ("accent", "header"):
         if not HEX.match(value[name]):

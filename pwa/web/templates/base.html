@@ -14,7 +14,7 @@
 </head>
 <body data-csrf="{{ csrf }}">
 <header class="top">
-  <a class="brand" href="{{ url_for('ui.dashboard') }}">{% if brand.has_logo %}<img src="{{ url_for('ui.brand_logo') }}" alt="">{% else %}<img class="icon" src="{{ url_for('static', filename='brand/pwa-next-icon.svg') }}" alt="">{% endif %}<span>{{ site_name }}{% if brand.tagline %}<small>{{ brand.tagline }}</small>{% endif %}</span></a>
+  <a class="brand" href="{{ url_for('ui.dashboard') }}">{% if brand.has_logo %}<img src="{{ url_for('ui.brand_logo') }}" alt=""{% if brand.logo_background == "light" %} class="plate"{% endif %}>{% else %}<img class="icon" src="{{ url_for('static', filename='brand/pwa-next-icon.svg') }}" alt="">{% endif %}<span>{{ site_name }}{% if brand.tagline %}<small>{{ brand.tagline }}</small>{% endif %}</span></a>
   {% if user %}
   <nav>
     {% set here = request.endpoint or "" %}

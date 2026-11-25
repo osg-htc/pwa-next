@@ -142,3 +142,4 @@ footer.site a { color: var(--quiet); }
 header.top .brand img.icon { height: 30px; width: 30px; }
 .powered { display: flex; align-items: center; gap: .8rem; color: var(--quiet); }
 .powered img { height: 32px; }
+header.top .brand img.plate, img.logo-preview.plate { background: #fff; border-radius: 6px; padding: 2px; }

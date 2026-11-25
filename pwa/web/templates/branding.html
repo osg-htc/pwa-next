@@ -14,9 +14,11 @@
     <div class="field"><label for="tagline">Tagline</label><input id="tagline" name="tagline" value="{{ value.tagline or '' }}" maxlength="160" placeholder="for example: OSG and WLCG perfSONAR mesh configuration">
       <p class="help">Shown under the name in the page header.</p></div>
     <div class="field"><label for="logo">Logo</label>
-      <p><img class="logo-preview" src="{{ url_for('ui.brand_logo') if value.has_logo else url_for('static', filename='brand/pwa-next-icon.svg') }}" alt="current logo">{% if not value.has_logo %} <span class="quiet">the default pwa-next icon</span>{% endif %}</p>
+      <p><img class="logo-preview{% if value.has_logo and value.logo_background == 'light' %} plate{% endif %}" src="{{ url_for('ui.brand_logo') if value.has_logo else url_for('static', filename='brand/pwa-next-icon.svg') }}" alt="current logo">{% if not value.has_logo %} <span class="quiet">the default pwa-next icon</span>{% endif %}</p>
       <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
       <p class="help">PNG, JPEG, GIF, WebP or SVG, under 512 KB. It is shown at most 34 pixels high on the header colour, so a light or transparent logo works best. Without one, the pwa-next icon is shown.</p></div>
+    <div class="field check"><label><input type="checkbox" name="logo_background" value="light" {% if value.logo_background == "light" %}checked{% endif %}> Show the logo on a white tile</label>
+      <p class="help">For logos with dark lettering on a transparent background, which would not show on the dark header.</p></div>
   </section>
   <section class="card">
     <h2>Colours</h2>
