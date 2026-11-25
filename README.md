@@ -58,6 +58,10 @@ Settings are environment variables, or `KEY=value` lines in the file named by `P
 
 Apache License 2.0; see [LICENSE](LICENSE). The bundled files below keep their own licences.
 
+## Security
+
+Please report security problems privately: see [SECURITY.md](SECURITY.md).
+
 ## Logo
 
 The logo kit (icon, favicons, lockups for light and dark backgrounds, social card, colour values) is in [docs/brand](docs/brand/README.txt). The application uses copies in `pwa/web/static/brand/`. The wordmark is set in Inter (SIL Open Font License), converted to outlines.
