@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Help{% endblock %}
+{% block main %}
+<h1>Help</h1>
+<p class="lead">How this service works, and how to do the common jobs. For what each kind of test measures, see <a href="{{ url_for('ui.test_types') }}">Test types</a>.</p>
+
+<section class="card">
+  <h2>What this service does</h2>
+  <p>It holds the measurement plan for a set of perfSONAR hosts: which hosts test to which, with what tests, how often, and where the results go. Every change is published straight away as pSConfig templates, which the perfSONAR hosts read and turn into scheduled tests.</p>
+  <p>A perfSONAR host subscribes once, to its own address, and from then on picks up every mesh it belongs to:</p>
+  <pre>psconfig remote add {{ public_url }}/auto/$(hostname -f)</pre>
+  <p class="help">Hosts check for changes about once an hour, so a change here reaches them within the hour.</p>
+</section>
+
+<section class="card">
+  <h2>The building blocks</h2>
+  <table class="plain">
+    <tr><td><a href="{{ url_for('ui.hosts') }}">Hosts</a></td><td>perfSONAR hosts. Most come from the perfSONAR Lookup Service by themselves; add one by hand only if it does not register there.</td></tr>
+    <tr><td><a href="{{ url_for('ui.groups') }}">Host groups</a></td><td>Sets of hosts that test together. A group can list hosts by name, include other groups (and follow their changes), and pick hosts by rule, for example every host in a Lookup Service community.</td></tr>
+    <tr><td><a href="{{ url_for('ui.tests') }}">Tests</a></td><td>What to measure and how often: a test type (throughput, latency, traceroute…), its options, and a repeat interval. One test can be used by many meshes; changing it changes all of them.</td></tr>
+    <tr><td><a href="{{ url_for('ui.archives') }}">Archives</a></td><td>Where results are sent, usually an HTTP archive pointing at a central OpenSearch/Logstash.</td></tr>
+    <tr><td><a href="{{ url_for('ui.meshes') }}">Meshes</a></td><td>A published configuration, made of tasks. Each task runs one test either between every pair of hosts in one group, or between each host of one group and each host of another. A mesh also says which archives receive its results.</td></tr>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Common jobs</h2>
+  <h3>Add a site's perfSONAR host to existing meshes</h3>
+  <ol>
+    <li>Make sure the host is known: search for it under <a href="{{ url_for('ui.hosts') }}">Hosts</a> (choose “All known hosts”). If it is not there, check that it registers with the Lookup Service, or add it by hand.</li>
+    <li>Open each <a href="{{ url_for('ui.groups') }}">host group</a> it should be in, type part of its name under “Add hosts”, and click Add. Every mesh that uses the group includes the host from then on.</li>
+    <li>On the host, subscribe once with the <code>psconfig remote add</code> command above.</li>
+  </ol>
+  <h3>Remove a host from everything</h3>
+  <p>Open the host under <a href="{{ url_for('ui.hosts') }}">Hosts</a> and choose “Remove this host from everything”. You see every group and mesh it is in before confirming.</p>
+  <h3>Start a new mesh</h3>
+  <ol>
+    <li>Create the host group(s), or reuse existing ones.</li>
+    <li>Pick existing tests, or create new ones under <a href="{{ url_for('ui.tests') }}">Tests</a>.</li>
+    <li>Create the mesh under <a href="{{ url_for('ui.meshes') }}">Meshes</a>, choose its archives, and add a task for each test. Each task shows how many hosts and test pairs it creates.</li>
+    <li>Use “Preview the JSON” to see exactly what perfSONAR hosts will receive.</li>
+  </ol>
+  <h3>Change how often a test runs, or its options</h3>
+  <p>Edit the test. Its page lists every mesh and task that uses it; all of them change. To change only one mesh, make a copy of the test and point that mesh's task at the copy.</p>
+  <h3>Give someone access</h3>
+  <p>People appear under <a href="{{ url_for('ui.access') }}">People</a> after they have signed in once. Give access on an item's own page (“Who can change this”), or for every item of a kind under People. Teams let you give a whole group of people access in one step.</p>
+</section>
+
+<section class="card">
+  <h2>Who can change what</h2>
+  <table class="plain">
+    <tr><td><b>Anyone signed in</b></td><td>can look at everything.</td></tr>
+    <tr><td><b>Contributor</b> (host groups)</td><td>can add and remove hosts.</td></tr>
+    <tr><td><b>Editor</b></td><td>can change the item.</td></tr>
+    <tr><td><b>Owner</b></td><td>can change and delete it, and decide who else has access. Whoever creates something owns it.</td></tr>
+    <tr><td><b>Creator</b> (for a whole kind)</td><td>can create new items of that kind.</td></tr>
+    <tr><td><b>Service administrator</b></td><td>can do everything, including managing people and branding.</td></tr>
+  </table>
+  <p class="help">Every change is recorded with who made it, under <a href="{{ url_for('ui.audit_log') }}">History</a>.</p>
+</section>
+
+<section class="card">
+  <h2>When something looks wrong</h2>
+  <ul>
+    <li>The <a href="{{ url_for('ui.dashboard') }}">Overview</a> lists what needs attention: tasks withheld because pScheduler would reject their test, hosts that have stopped registering, archives that perfSONAR 5.3 will reject.</li>
+    <li>Nothing invalid is ever published: a task whose test has a problem is left out until the test is fixed, and the rest of the mesh keeps working.</li>
+    <li><a href="{{ url_for('ui.reports_page') }}">Reports</a> show the load each host carries, measurements made twice by different meshes, hosts that may not support their tests, and what is tested between any two hosts.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>More</h2>
+  <ul>
+    <li><a href="{{ url_for('ui.test_types') }}">Test types</a>: what each test does, and which tools support which options.</li>
+    <li><a href="{{ url_for('ui.about') }}">About this service</a>{% if brand.contact %}, and who to ask{% endif %}.</li>
+    {% for l in brand.links %}<li><a href="{{ l.url }}" rel="noopener">{{ l.label }}</a></li>{% endfor %}
+    <li><a href="https://docs.perfsonar.net/" rel="noopener">perfSONAR documentation</a></li>
+  </ul>
+</section>
+{% endblock %}

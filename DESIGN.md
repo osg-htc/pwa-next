@@ -106,7 +106,7 @@ A person can have several logins (CILogon issues a different identifier per iden
 - **Filters on the Tests page**: text, type, mesh, tool, schedule, IP version, and used, unused or with problems.
 - **Reports**: per mesh (hosts, measurements, runs a day, throughput test hours), the busiest hosts by share of the day spent in exclusive throughput tests, host pairs measured more than once by the same kind of test, hosts that do not advertise a task's test type, perfSONAR versions in use, hosts gone quiet per mesh, and a lookup of everything tested between two hosts.
 - **Single-host test types** (DNS, HTTP and others) are published as pSConfig `list` groups, so each host runs them on its own; test types that are not addressed by host (SNMP, disk-to-disk) cannot be put in a task.
-- **Branding**: service administrators set the name, tagline, logo, colours, About text, contact and footer links on a Branding page; stored in the database, so no redeploy. Inputs are validated (colours, link schemes, real image files), and the logo is served with a restrictive Content-Security-Policy so an SVG cannot run scripts.
+- **Branding**: service administrators set the name, tagline, logo, colours, About text, contact and footer links on a Branding page; stored in the database, so no redeploy. Scripted deployments can set the same from a JSON file with `pwa branding set FILE [--logo IMAGE]` (example: `docs/examples/branding-wlcg.json`). Without an uploaded logo the pwa-next icon is shown. A Help page explains the concepts and common jobs. Inputs are validated (colours, link schemes, real image files), and the logo is served with a restrictive Content-Security-Policy so an SVG cannot run scripts.
 - **Dashboard metadata**: every task carries `reference.display-task-name` and `display-task-group`, which the 5.x Grafana agent reads (PWA issue #229).
 
 ## Evidence so far
@@ -115,7 +115,7 @@ Checked on 2026-11-20 against the production OSG/WLCG PWA (read-only):
 
 - Importing its database and publishing gives the same tasks, hosts, schedules, tools and archives as PWA serves, for all 32 meshes and 52 sampled per-host feeds (`tools/check_import.py`; the comparison resolves internal key names and was confirmed to detect deliberate changes).
 - All 32 published mesh files pass `psconfig validate` from perfSONAR 5.2.6. Production PWA passes 31; the new publisher withholds the one task with an invalid test instead of publishing it.
-- 56 automated tests cover forms, translation, publishing, membership, cascades, the web workflows and permissions.
+- 61 automated tests cover forms, translation, publishing, membership, cascades, the web workflows and permissions.
 - A dry run of the Lookup Service sync matched 1,299 existing inventory hosts by name.
 - On PostgreSQL 15: the test suite passes, and the production import, a full publish (1.4 s) and a live Lookup Service sync all ran, with published output still matching PWA.
 

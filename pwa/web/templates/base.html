@@ -26,7 +26,8 @@
         ("ui.archives", "Archives", ("ui.archive",)),
         ("ui.reports_page", "Reports", ("ui.reports",)),
         ("ui.access", "People", ("ui.access", "ui.team", "ui.user")),
-        ("ui.audit_log", "History", ("ui.audit",))] %}
+        ("ui.audit_log", "History", ("ui.audit",)),
+        ("ui.help_page", "Help", ("ui.help", "ui.test_type"))] %}
     <a href="{{ url_for(endpoint) }}" {% if here.startswith(prefix) %}class="here"{% endif %}>{{ label }}</a>
     {% endfor %}
   </nav>
@@ -43,6 +44,7 @@
   {% block main %}{% endblock %}
 </main>
 <footer class="site">
+  <a href="{{ url_for('ui.help_page') }}">Help</a>
   <a href="{{ url_for('ui.about') }}">About this service</a>
   {% for l in brand.links %}<a href="{{ l.url }}" rel="noopener">{{ l.label }}</a>{% endfor %}
   {% if brand.contact %}<span>Questions: {% if "@" in brand.contact and "://" not in brand.contact %}<a href="mailto:{{ brand.contact }}">{{ brand.contact }}</a>{% else %}<a href="{{ brand.contact }}" rel="noopener">{{ brand.contact }}</a>{% endif %}</span>{% endif %}

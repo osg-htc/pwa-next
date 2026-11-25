@@ -1,0 +1,12 @@
+{
+  "site_name": "WLCG perfSONAR Configuration",
+  "tagline": "Measurement meshes for the Worldwide LHC Computing Grid",
+  "header": "#0b2a4a",
+  "accent": "#1565c0",
+  "contact": "perfsonar-admins@example.org",
+  "about": "This service defines the WLCG and OSG perfSONAR measurement meshes and publishes them as pSConfig templates.\n\nIt is run by the WLCG Network Throughput working group. Results go to the central archive and the dashboards linked below.",
+  "links": [
+    {"label": "Dashboards", "url": "https://example.org/grafana"},
+    {"label": "Documentation", "url": "https://example.org/docs"}
+  ]
+}

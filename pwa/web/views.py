@@ -1067,6 +1067,11 @@ def favicon():
                                mimetype="image/vnd.microsoft.icon", max_age=86400)
 
 
+@ui.route("/help")
+def help_page():
+    return render_template("help.html")
+
+
 @ui.route("/about")
 def about():
     counts = {"meshes": g.db.query(m.Mesh).count(), "groups": g.db.query(m.HostGroup).count(),

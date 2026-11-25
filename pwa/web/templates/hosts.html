@@ -3,7 +3,7 @@
 {% block main %}
 <h1>Hosts {% if access.can("create", "host") %}<a class="button" href="{{ url_for('ui.host_new') }}">Add a host by hand</a>{% endif %}</h1>
 <p class="lead">Hosts come from the perfSONAR Lookup Service automatically. Add one by hand only if it does not register there.</p>
-<form method="get" class="inline filterbar" hx-get="{{ url_for('ui.hosts') }}" hx-target="#rows" hx-trigger="input changed delay:200ms from:find input[type=search], change from:find select">
+<form method="get" class="inline filterbar" hx-get="{{ url_for('ui.hosts') }}" hx-target="#rows" hx-trigger="input changed delay:200ms from:find input[type=search], change">
   <input type="search" name="q" value="{{ q }}" placeholder="Type part of a host name or site…" autofocus>
   <select name="show">
     {% for value, label in [("used", "In a host group"), ("all", "All known hosts"), ("unused", "Not in any host group"), ("stale", "In use but gone quiet"), ("manual", "Added by hand")] %}

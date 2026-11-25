@@ -3,6 +3,7 @@
 {% block title %}Overview{% endblock %}
 {% block main %}
 <h1>Overview</h1>
+<p class="lead">New here? <a href="{{ url_for('ui.help_page') }}">Read how this service works and how to do the common jobs.</a></p>
 {% if my_link and not user.is_admin %}<p class="flash warn">An account from the previous PWA uses your e-mail address ({{ my_link.email }}). Until a service administrator confirms it is yours, you will not have the access it had.</p>{% endif %}
 {% if links %}
 <section class="card">

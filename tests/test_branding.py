@@ -77,3 +77,31 @@ def test_uploaded_logo_replaces_the_default(app, as_user):
                           content_type="multipart/form-data")
     page = as_user("alice").get("/").data.decode()
     assert 'src="/branding/logo"' in page and "pwa-next-icon.svg" not in page
+
+
+def test_branding_from_a_file_for_scripted_deployments(app, tmp_path, monkeypatch, db):
+    import json
+    from pwa import cli, models as m
+    settings = tmp_path / "branding.json"
+    settings.write_text(json.dumps({"site_name": "WLCG perfSONAR Configuration", "header": "#0b2a4a",
+                                    "accent": "#1565c0", "links": [{"label": "Docs", "url": "https://example.org/docs"}]}))
+    logo = tmp_path / "logo.png"
+    logo.write_bytes(PNG)
+    monkeypatch.setenv("PWA_DATABASE_URL", app.config["DATABASE_URL"])
+    monkeypatch.setenv("PWA_PUBLISH_DIR", app.config["PUBLISH_DIR"])
+    assert cli.main(["branding", "set", str(settings), "--logo", str(logo)]) == 0
+    db.expire_all()
+    assert db.get(m.Setting, "branding").value["site_name"] == "WLCG perfSONAR Configuration"
+    assert db.get(m.Setting, "branding.logo") is not None
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"accent": "red", "links": [{"label": "x", "url": "javascript:alert(1)"}]}))
+    assert cli.main(["branding", "set", str(bad)]) == 1
+
+
+def test_help_page_and_filters_trigger_on_every_dropdown(app, as_user):
+    b = as_user("alice")
+    page = b.get("/help").data.decode()
+    assert "psconfig remote add https://ps.example.org/pub/auto/" in page and "Who can change what" in page
+    assert 'href="/help"' in b.get("/").data.decode()
+    tests_page = b.get("/tests").data.decode()
+    assert 'from:find select' not in tests_page and 'hx-trigger="input changed delay:200ms from:find input[type=search], change"' in tests_page
