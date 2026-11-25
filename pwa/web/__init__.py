@@ -14,6 +14,7 @@ from ..services import audit
 def create_app(overrides=None):
     cfg = config.load(overrides)
     app = Flask(__name__)
+    app.debug = False          # the Werkzeug debugger must never be reachable (CVE-2024-34069)
     app.config.update(cfg)
     if not cfg["SECRET_KEY"] and cfg["AUTH"] != "dev" and not cfg.get("TESTING"):
         # A random key per process would log people out whenever Apache picks
@@ -31,6 +32,21 @@ def create_app(overrides=None):
     Session = db.make_session_factory(engine)
     app.extensions["pwa_session"] = Session
     app.extensions["pwa_engine"] = engine
+
+    @app.after_request
+    def _headers(resp):
+        h = resp.headers
+        h.setdefault("X-Content-Type-Options", "nosniff")
+        h.setdefault("Referrer-Policy", "same-origin")
+        h.setdefault("X-Frame-Options", "DENY")
+        public = request.path.startswith(("/pub/", "/static/")) or request.endpoint in ("ui.brand_logo", "ui.favicon")
+        if not public:
+            # Pages are per person (sign-in, CSRF token). Never let a shared
+            # cache keep one, whatever the Flask version does about Vary
+            # (CVE-2023-30861, CVE-2026-27205 in the EL9 Flask 2.0.3).
+            h["Cache-Control"] = "private, no-store"
+            h.add("Vary", "Cookie")
+        return resp
 
     @app.teardown_appcontext
     def _cleanup(exc):

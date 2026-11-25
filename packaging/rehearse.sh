@@ -128,6 +128,8 @@ for i in 1 2 3 4 5 6; do
     [ "$(code -u tester:testpw -b $jar --form-string "_csrf=$token" $S/publish)" = "302" ] && ok=$((ok + 1))
 done
 check "form posts accepted by every worker process" "6" "$ok"
+check "oversized request body refused by Apache" "413" "$(head -c 3000000 /dev/zero | curl -k -s -o /dev/null -w '%{http_code}' -u tester:testpw -X POST --data-binary @- $S/publish)"
+check "pages not cacheable, vary on cookie" "1" "$(curl -k -s -D - -o /dev/null -u tester:testpw $S/meshes | grep -c -i -E '^cache-control: private, no-store')"
 check "form post without the token refused" "400" "$(code -u tester:testpw -b $jar -X POST $S/publish)"
 if [ -f /work/export/configs.json ]; then
     slug=$(python3 -c 'import json; print(json.load(open("/tmp/export/configs.json"))[0]["url"])')

@@ -147,3 +147,13 @@ def test_needs_attention_links_to_the_mesh_and_the_test(app, as_user, db):
     # published files are linked on this server's own /pub path, whatever PWA_PUBLIC_URL says
     assert 'href="/pub/config/demo"' in b.get("/meshes").data.decode()
     assert b.get("/pub/config/demo").status_code == 200
+
+
+def test_security_headers(app, as_user):
+    page = as_user("admin").get("/meshes")
+    assert page.headers["Cache-Control"] == "private, no-store" and "Cookie" in page.headers.get("Vary", "")
+    assert page.headers["X-Frame-Options"] == "DENY" and page.headers["X-Content-Type-Options"] == "nosniff"
+    published = app.test_client().get("/pub/config/demo")
+    assert "no-store" not in published.headers.get("Cache-Control", "")
+    big = as_user("admin").post("/settings/branding", data={"_csrf": "tok", "about": "x" * (3 * 1024 * 1024)})
+    assert big.status_code == 413                       # MAX_CONTENT_LENGTH: the form is not parsed

@@ -119,12 +119,29 @@ Checked on 2026-11-20 against the production OSG/WLCG PWA (read-only):
 - A dry run of the Lookup Service sync matched 1,299 existing inventory hosts by name.
 - On PostgreSQL 15: the test suite passes, and the production import, a full publish (1.4 s) and a live Lookup Service sync all ran, with published output still matching PWA.
 
+## Dependencies and security
+
+Development and the test suite use current, patched releases (`requirements-dev.txt`). Production on EL9 uses the distribution's packages: Flask and Werkzeug 2.0.3 from EPEL, which carry no security backports, and Jinja2 2.11 and SQLAlchemy 1.4 from AppStream. `packaging/rehearse.sh` runs the whole test suite against exactly those, so the code is tested on both.
+
+The known issues in the EL9 versions (GitHub's Dependabot listed 17 against the old pins on 2026-11-25), and why each does or does not matter here:
+
+| Issue | Applies? | Cover |
+|---|---|---|
+| Flask: session cookie exposed through a shared cache when `Vary: Cookie` is missing (CVE-2023-30861, CVE-2026-27205) | Only behind a caching proxy, with permanent sessions; neither is used | Every page is sent with `Cache-Control: private, no-store` and `Vary: Cookie` |
+| Werkzeug: CPU and memory exhaustion in multipart form parsing (CVE-2023-25577, CVE-2023-46136, CVE-2024-49767) | Partly: only signed-in people can post forms, because Apache authenticates first | Request bodies capped at 2 MB in Apache (`LimitRequestBody`) and in the application (`MAX_CONTENT_LENGTH`) |
+| Werkzeug debugger remote code execution (CVE-2024-34069) | No: the debugger is never enabled | `app.debug` is forced off |
+| Werkzeug `safe_join` and Windows device names (CVE-2024-49766, CVE-2025-66221, CVE-2026-21860, CVE-2026-27199, CVE-2026-102598) | No: Windows only | — |
+| Werkzeug nameless cookies and `__Host-` cookies (CVE-2023-23934) | No: no `__Host-` cookies | — |
+| Jinja2 sandbox escapes (CVE-2024-56201, CVE-2024-56326, CVE-2025-27516) | No: only the application's own templates are rendered, never in the sandbox | — |
+| Jinja2 `xmlattr` attribute injection (CVE-2024-22195, CVE-2024-34064) | No: the filter is not used | — |
+
+Pages also carry `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`. If a future issue does apply and EPEL does not fix it, the options are to package newer Flask and Werkzeug with pwa-next, or to move to EL10, whose EPEL has current Flask.
+
 ## Not done yet
 
 | Item | Note |
 |---|---|
 | Deployment | Rehearsed in EL9 containers only (`packaging/rehearse.sh`, `packaging/rehearse-ansible.sh`): RPM build and install, PostgreSQL 13, Apache with mod_wsgi and password sign-in, and the Ansible playbook. Not yet on a real host. SELinux enforcing is not handled (AGLT2 runs permissive). |
-| Flask and Werkzeug security fixes | EL9 gets both from EPEL at 2.0.3, with no CVE fixes in the package changelogs. Mitigated by design (Apache authenticates before any request reaches Python; published and static files are served by Apache; the debugger is never enabled), but which known issues still apply to signed-in users has not been assessed. |
 | CILogon | The mod_auth_openidc configuration parses but has never met CILogon. Client registration, the claim names, and which eduGAIN identity providers CILogon admits all need confirming against a real login. |
 | Linking the existing PWA accounts | Implemented (see docs/MIGRATION.md) but not yet exercised with a real CILogon login. In the OSG/WLCG instance only 6 of the 51 people who own something have a CILogon identity on record; the rest use local passwords and will need an administrator's one-click confirmation at first login. |
 | Scripted access | No REST API or API tokens yet. PWA's admin API is not reproduced. |

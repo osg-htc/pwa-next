@@ -1,11 +1,14 @@
-# Pinned to what EL9 (and EPEL 9) package, so development matches deployment.
-flask==2.0.3
-werkzeug==2.0.3
-jinja2==3.0.3
-itsdangerous==2.0.1
-markupsafe==2.0.1
-click==8.0.4
-sqlalchemy==1.4.45
-jsonschema==3.2.0
+# Development and tests use current, patched releases.
+#
+# Production on EL9 uses the distribution's packages instead (Flask and
+# Werkzeug 2.0.3 from EPEL, Jinja2 2.11 and SQLAlchemy 1.4 from AppStream);
+# packaging/rehearse.sh runs the whole test suite against exactly those, so
+# the code is tested on both. DESIGN.md ("Dependencies and security") lists
+# which known issues in the EL9 versions matter here and how they are covered.
+flask>=3.1.3
+werkzeug>=3.1.9
+jinja2>=3.1.6
+sqlalchemy>=1.4.45,<2.0
+jsonschema>=3.2
 pytest
-# Production also needs python3-psycopg2 for PostgreSQL.
+# For PWA_TEST_DATABASE_URL against PostgreSQL:  pip install psycopg2-binary
