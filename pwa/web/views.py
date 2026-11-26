@@ -1287,9 +1287,22 @@ def user_page(ident):
                 done("Moved all access of %s to %s." % (label, target.label), "merge-user",
                      object_type="user", detail={"from": label, "to": target.label}, republish=False)
                 return redirect(url_for("ui.user_page", ident=target.id))
+        elif action == "delete":
+            if person.id == g.user.id:
+                flash("You cannot delete your own account.", "error")
+            else:
+                label, subject = person.label, person.subject
+                left = [obj.label for _, obj in authz.only_changer_of(g.db, person)]
+                removed = authz.delete_user(g.db, person)
+                done("Deleted the account of %s." % label, "delete-user", object_type="user", label=label,
+                     detail={"user": label, "login": subject, "permissions removed": removed,
+                             "left to administrators": left[:50]},
+                     republish=False)
+                return redirect(url_for("ui.access"))
         return redirect(url_for("ui.user_page", ident=person.id))
     grants = g.db.query(m.Grant).filter_by(principal_type="user", principal_id=person.id).all()
-    return render_template("user.html", person=person, held=_describe(grants))
+    only_them = authz.only_changer_of(g.db, person) if g.user.is_admin else []
+    return render_template("user.html", person=person, held=_describe(grants), only_them=only_them)
 
 
 # --------------------------------------------------------------------------

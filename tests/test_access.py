@@ -1,4 +1,4 @@
-from pwa import models as m
+from pwa import authz, models as m
 from pwa.web import create_app
 
 
@@ -88,6 +88,50 @@ def test_merge_imported_account_into_real_login(app, as_user, give, db):
                           {"action": "merge", "target_id": app.ids["users"]["bob"]})
     assert db.get(m.User, app.ids["users"]["alice"]) is None
     assert as_user("bob").post("/meshes/%d" % app.ids["mesh"], {"name": "Bob's now", "slug": "demo"}).status_code == 302
+
+
+def test_administrator_deletes_an_account(app, as_user, give, db):
+    give("alice", "owner", "mesh", app.ids["mesh"])
+    alice = db.get(m.User, app.ids["users"]["alice"])
+    alice.identities = [m.UserIdentity(subject="u:alice-orcid", idp="ORCID")]
+    team = m.Team(name="Testers")
+    team.members.append(m.TeamMember(user=alice))
+    db.add(team)
+    db.commit()
+    admin = as_user("admin")
+    page = admin.get("/access/users/%d" % app.ids["users"]["alice"]).get_data(as_text=True)
+    assert "Delete account" in page and "Nobody else can change this item" in page and "Demo mesh" in page
+    assert admin.post("/access/users/%d" % app.ids["users"]["alice"], {"action": "delete"}).status_code == 302
+    db.expire_all()
+    assert db.get(m.User, app.ids["users"]["alice"]) is None
+    assert db.query(m.Grant).filter_by(principal_type="user", principal_id=app.ids["users"]["alice"]).count() == 0
+    assert db.get(m.UserIdentity, "u:alice-orcid") is None
+    assert db.query(m.Team).filter_by(name="Testers").one().members == []
+    entry = db.query(m.AuditLog).filter_by(action="delete-user").one()
+    assert entry.object_label == "Alice" and entry.detail["left to administrators"] == ["Demo mesh"]
+    assert db.get(m.Mesh, app.ids["mesh"]) is not None           # the mesh itself stays
+
+
+def test_account_deletion_is_for_administrators_and_not_oneself(app, as_user, db):
+    assert as_user("alice").post("/access/users/%d" % app.ids["users"]["bob"], {"action": "delete"}).status_code == 403
+    as_user("admin").post("/access/users/%d" % app.ids["users"]["admin"], {"action": "delete"})
+    db.expire_all()
+    assert db.get(m.User, app.ids["users"]["bob"]) is not None
+    assert db.get(m.User, app.ids["users"]["admin"]) is not None
+
+
+def test_only_changer_ignores_items_someone_else_can_change(app, give, db):
+    give("alice", "owner", "mesh", app.ids["mesh"])
+    give("alice", "editor", "hostgroup", app.ids["g1"])
+    give("bob", "owner", "hostgroup", app.ids["g1"])
+    give("bob", "contributor", "hostgroup", app.ids["g2"])
+    give("alice", "contributor", "hostgroup", app.ids["g2"])
+    alice = db.get(m.User, app.ids["users"]["alice"])
+    assert [obj.id for _, obj in authz.only_changer_of(db, alice)] == [app.ids["mesh"]]
+    db.get(m.User, app.ids["users"]["bob"]).active = False       # a disabled account does not count
+    db.commit()
+    left = sorted((gr.scope_type, obj.id) for gr, obj in authz.only_changer_of(db, alice))
+    assert left == sorted([("mesh", app.ids["mesh"]), ("hostgroup", app.ids["g1"]), ("hostgroup", app.ids["g2"])])
 
 
 def test_federated_login_creates_accounts(tmp_path):

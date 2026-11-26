@@ -1,5 +1,5 @@
 Name:           pwa-next
-Version:        0.2.0
+Version:        0.2.1
 Release:        1%{?dist}
 Summary:        Web administration for perfSONAR pSConfig meshes
 
@@ -77,6 +77,13 @@ exit 0
 %dir %attr(0755,pwa,pwa) %{_sharedstatedir}/pwa/pub
 
 %changelog
+* Thu Nov 26 2026 Shawn McKee - 0.2.1-1
+- People: administrators can delete an account (its access, logins and team
+  memberships; history kept), after a list of anything nobody else could change.
+- Ansible: load mod_auth_openidc only for CILogon (RHEL 9's 2.4.16.11-1 crashes
+  httpd workers when it is loaded unconfigured); fail2ban jail for failed web
+  sign-ins.
+
 * Thu Nov 26 2026 Shawn McKee - 0.2.0-1
 - Help page, test-type help with tool/option support, Tests filters, Reports.
 - Branding (settings page and `pwa branding`), pwa-next logo and favicons.

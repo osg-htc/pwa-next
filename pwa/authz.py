@@ -151,6 +151,52 @@ def merge_users(session, source, target):
         session.add(m.UserIdentity(subject=subject, user_id=target.id, idp=idp))
 
 
+def _principal_active(session, ptype, pid):
+    if ptype == "user":
+        u = session.get(m.User, pid)
+        return u is not None and u.active
+    t = session.get(m.Team, pid)
+    return t is not None and any(tm.user.active for tm in t.members)
+
+
+def only_changer_of(session, user):
+    """[(grant, object)] for items that nobody but this person can change.
+
+    Service administrators can always change everything, so these are the items
+    that would be left to administrators alone if the person went away.
+    """
+    out, seen = [], set()
+    for mine in session.query(m.Grant).filter_by(principal_type="user", principal_id=user.id):
+        abilities = ROLES.get(mine.role, set()) - {"create"}
+        if mine.scope_id is None or not abilities:
+            continue
+        obj = session.get(m.SCOPE_MODELS[mine.scope_type], mine.scope_id)
+        if obj is None or (mine.scope_type, obj.id) in seen:
+            continue
+        others = [g for g, _ in grants_on(session, mine.scope_type, obj)
+                  if not (g.principal_type == "user" and g.principal_id == user.id)
+                  and ROLES.get(g.role, set()) & abilities
+                  and _principal_active(session, g.principal_type, g.principal_id)]
+        if not others:
+            seen.add((mine.scope_type, obj.id))
+            out.append((mine, obj))
+    out.sort(key=lambda x: (x[0].scope_type, x[1].label))
+    return out
+
+
+def delete_user(session, user):
+    """Remove an account, its permissions, logins and team memberships.
+
+    The history keeps its entries: they name people, they do not point at accounts.
+    Returns the number of permissions removed.
+    """
+    n = (session.query(m.Grant).filter_by(principal_type="user", principal_id=user.id)
+         .delete(synchronize_session=False))
+    session.delete(user)          # identities and team memberships go with it (cascade)
+    session.flush()
+    return n
+
+
 def link_candidates(session):
     """[(signed-in account, imported placeholder)] that share an e-mail address.
 

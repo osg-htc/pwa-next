@@ -26,6 +26,19 @@
   <p class="help">For accounts imported from the old PWA: once the person has signed in through their institution, move the imported access to that login. The imported account is then deleted.</p>
   <form method="post" class="inline" data-confirm="Move all access from this account and delete it?">{{ csrf_field() }}<input type="hidden" name="action" value="merge">
     {{ picker("user", "target_id", placeholder="Account to move access to…") }} <button class="secondary">Move access</button></form>
+  {% if person.id != user.id %}
+  <h3 id="delete">Delete this account</h3>
+  <p class="help">Removes the account, what it could change, its logins and its team memberships. History keeps its entries. To keep the access for someone else, move it first (above). To stop someone signing in for now, untick “May sign in” instead.{% if not person.is_placeholder %} If this person signs in again later, they get a new account that can only look.{% endif %}</p>
+  {% if only_them %}
+  <p class="flash warn">Nobody else can change {{ "this item" if only_them|length == 1 else "these %d items"|format(only_them|length) }}; after the deletion only service administrators can:</p>
+  {% set views = {"host": "ui.host", "hostgroup": "ui.group", "test": "ui.test", "archive": "ui.archive", "mesh": "ui.mesh"} %}
+  <table class="plain">
+    {% for gr, obj in only_them %}<tr><td class="quiet">{{ scopes[gr.scope_type] }}</td><td><a href="{{ url_for(views[gr.scope_type], ident=obj.id) }}">{{ obj.label }}</a></td><td>{{ gr.role }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  <form method="post" class="inline" data-confirm="Delete the account of {{ person.label }}{% if only_them %}, leaving {{ only_them|length }} item(s) that only administrators can change{% endif %}? This cannot be undone.">{{ csrf_field() }}<input type="hidden" name="action" value="delete">
+    <button class="danger">Delete account</button></form>
+  {% endif %}
 </section>
 {% endif %}
 {% endblock %}

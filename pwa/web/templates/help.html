@@ -44,6 +44,8 @@
   <p>Edit the test. Its page lists every mesh and task that uses it; all of them change. To change only one mesh, make a copy of the test and point that mesh's task at the copy.</p>
   <h3>Give someone access</h3>
   <p>People appear under <a href="{{ url_for('ui.access') }}">People</a> after they have signed in once. Give access on an item's own page (“Who can change this”), or for every item of a kind under People. Teams let you give a whole group of people access in one step.</p>
+  <h3>Remove someone</h3>
+  <p>Service administrators open the person under <a href="{{ url_for('ui.access') }}">People</a>. Untick “May sign in” to stop them for now (everything comes back if you tick it again), or use “Delete account” to remove the account and its access for good. The page first lists anything nobody else could change afterwards. For accounts imported from the previous PWA, “Move this account's access” hands their access to another account instead.</p>
 </section>
 
 <section class="card">
