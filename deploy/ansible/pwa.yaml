@@ -164,6 +164,29 @@
       line: "{{ '' if pwa_signin == 'oidc' else '# (not loaded: pwa uses password sign-in) ' }}LoadModule auth_openidc_module modules/mod_auth_openidc.so"
     notify: reload httpd
 
+  # Password sign-in may be reachable from anywhere (outside testers), so ban addresses that keep
+  # failing it: fail2ban's stock apache-auth filter, with the site's defaults (5 failures in 10
+  # minutes, banned for an hour). With CILogon there are no such failures and the jail stays quiet.
+  # Only for hosts that have fail2ban (all AGLT2 hosts do; the rehearsal container does not).
+  - name: is fail2ban installed
+    stat:
+      path: /etc/fail2ban/jail.d
+    register: pwa_fail2ban
+
+  - name: fail2ban jail for failed web sign-ins
+    copy:
+      dest: /etc/fail2ban/jail.d/pwa-web.local
+      mode: '0644'
+      content: |
+        # Managed by Ansible (playbooks/pwa.yaml): ban addresses that keep failing the web sign-in.
+        [apache-auth]
+        enabled = true
+        port    = http,https
+        logpath = /var/log/httpd/error_log
+                  /var/log/httpd/ssl_error_log
+    when: pwa_fail2ban.stat.exists
+    notify: reload fail2ban
+
   - name: start httpd
     service:
       name: httpd
@@ -196,6 +219,11 @@
     when: pwa_shadow_of | length > 0
 
   handlers:
+  - name: reload fail2ban
+    service:
+      name: fail2ban
+      state: reloaded
+
   - name: reload httpd
     service:
       name: httpd
