@@ -1,5 +1,5 @@
 Name:           pwa-next
-Version:        0.2.1
+Version:        0.2.2
 Release:        1%{?dist}
 Summary:        Web administration for perfSONAR pSConfig meshes
 
@@ -77,6 +77,11 @@ exit 0
 %dir %attr(0755,pwa,pwa) %{_sharedstatedir}/pwa/pub
 
 %changelog
+* Thu Nov 26 2026 Shawn McKee - 0.2.2-1
+- `pwa mcp`: MCP server for AI assistants over stdio, acting as one account
+  with its permissions; read tools, and change tools with --allow-changes
+  (docs/MCP.md).
+
 * Thu Nov 26 2026 Shawn McKee - 0.2.1-1
 - People: administrators can delete an account (its access, logins and team
   memberships; history kept), after a list of anything nobody else could change.
