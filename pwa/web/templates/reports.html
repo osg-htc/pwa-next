@@ -75,7 +75,7 @@
 
 <section class="card">
   <h2>Hosts gone quiet, by mesh</h2>
-  <p class="help">Hosts in enabled tasks that the Lookup Service has not listed for more than {{ stale_days }} days. They may be down, renamed, or no longer registering; their tests probably fail.</p>
+  <p class="help">Hosts in enabled tasks that the Lookup Service has not listed for more than {{ stale_days }} days. They may be down, renamed, or no longer registering; their tests probably fail. <a href="{{ url_for('ui.reports_follow_up') }}">Follow up with their sites</a>: the same hosts by site, with what each site needs to do and how to reach it.</p>
   {% if stale %}
   <table>
     {% for s in stale %}

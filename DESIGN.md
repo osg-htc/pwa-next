@@ -160,5 +160,6 @@ pwa/importer.py    one-time import from PWA  pwa/compat.py     semantic template
 pwa/testinfo.py    test-type help, tool support  pwa/reports.py  configuration analyses
 pwa/web/           Flask app, pages          pwa/specs/        schemas from pScheduler and pSConfig
 pwa/mcp.py         MCP server (stdio)        pwa/cli.py        the `pwa` command
+pwa/sites.py       site registries (CRIC, GOCDB, OSG Topology) for Reports > Follow-up with sites
 tools/             baseline fetch, import check              tests/   pytest suite
 ```

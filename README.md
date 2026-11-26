@@ -50,6 +50,7 @@ python -m pwa import-pwa <export-dir>   import a PWA database export, then publi
 python -m pwa lookup-sync [--dry-run]   refresh hosts from the Lookup Service, then publish
 python -m pwa publish                   publish everything again
 python -m pwa serve [--port N]          development server
+python -m pwa site-sync [--dry-run]     who runs each host, from WLCG CRIC, GOCDB, OSG Topology
 python -m pwa mcp --as <login>         MCP server for AI assistants (docs/MCP.md)
 ```
 

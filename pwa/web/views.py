@@ -1129,6 +1129,34 @@ def reports_page():
                            stale=reports.stale(all_tasks), stale_days=reports.STALE_DAYS, title=testinfo.title)
 
 
+@ui.route("/reports/follow-up")
+@ui.route("/reports/follow-up.csv", endpoint="reports_follow_up_csv")
+def reports_follow_up():
+    from .. import sites
+    reg = sites.registry(g.db)
+    groups = reports.follow_up(reports.tasks(g.db), reg)
+    if request.path.endswith(".csv"):
+        import csv
+        import io
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["site", "country", "tier", "federation", "ngi", "experiments", "how to reach", "gocdb page",
+                    "host", "last release", "silent days", "action", "meshes", "cric entry", "matched by"])
+        for grp in groups:
+            for x in grp["hosts"]:
+                w.writerow([grp["site"], grp["country"] or "", grp["tier"] or "", grp["federation"] or "",
+                            grp["ngi"] or "", " ".join(grp["experiments"]), " | ".join(grp["reach"]),
+                            grp["gocdb"] or "", x["host"].hostname, x["release"] or "",
+                            "" if x["silent_days"] is None else x["silent_days"], x["action_text"],
+                            " ".join(x["meshes"]), x["cric"] or "", x["matched"] or ""])
+        return current_app.response_class(buf.getvalue(), mimetype="text/csv", headers={
+            "Content-Disposition": "attachment; filename=perfsonar-follow-up-by-site.csv"})
+    return render_template("follow_up.html", groups=groups, registry=reg, stale_days=reports.STALE_DAYS,
+                           hosts=sum(len(x["hosts"]) for x in groups),
+                           actions=collections.Counter(x["action"] for grp in groups for x in grp["hosts"]),
+                           action_text=reports.ACTIONS)
+
+
 @ui.route("/reports/between")
 def reports_between():
     a = g.db.get(m.Host, request.args.get("a", type=int) or 0)

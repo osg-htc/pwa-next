@@ -397,7 +397,8 @@ def t_test_type_help(ctx, test_type):
             if specforms.known("tests", test_type) else []}
 
 
-REPORTS = ("gone_quiet", "duplicate_measurements", "busiest_hosts", "capability_gaps", "versions", "meshes")
+REPORTS = ("gone_quiet", "follow_up_by_site", "duplicate_measurements", "busiest_hosts", "capability_gaps",
+           "versions", "meshes")
 
 
 def t_report(ctx, name, limit=25):
@@ -407,6 +408,15 @@ def t_report(ctx, name, limit=25):
         return {"report": name, "rows": [{"mesh": x["mesh"].slug, "hosts": [
             {"hostname": h.hostname, "last_seen": _iso(h.last_seen)} for h in x["hosts"]][:limit]}
             for x in reports.stale(all_tasks)]}
+    if name == "follow_up_by_site":
+        from . import sites
+        reg = sites.registry(ctx.s)
+        return {"report": name, "registry_read": reg.get("fetched"), "sites": [
+            {"site": g["site"], "country": g["country"], "tier": g["tier"], "federation": g["federation"],
+             "ngi": g["ngi"], "experiments": g["experiments"], "how_to_reach": g["reach"], "gocdb_page": g["gocdb"],
+             "hosts": [{"hostname": x["host"].hostname, "last_release": x["release"], "silent_days": x["silent_days"],
+                        "ask": x["action_text"], "meshes": x["meshes"], "cric_entry": x["cric"]} for x in g["hosts"]]}
+            for g in reports.follow_up(all_tasks, reg)[:limit]]}
     if name == "duplicate_measurements":
         return {"report": name, "rows": [{"type": o["type"], "pairs": o["pairs"], "same_settings": o["same_settings"],
                                           "tasks": ["%s / %s" % (x.mesh.slug, x.task.name) for x, _ in o["tasks"]]}
@@ -644,6 +654,8 @@ TOOLS = [
      "params": {"test_type": S}, "required": ["test_type"]},
     {"name": "report", "title": "Reports", "changes": False, "fn": t_report,
      "description": "One of the Reports page's analyses: gone_quiet (hosts that stopped registering, by mesh), "
+                    "follow_up_by_site (the same hosts by the site that runs them, with what to ask and how to "
+                    "reach the site), "
                     "duplicate_measurements (host pairs measured by several tasks), busiest_hosts, "
                     "capability_gaps (hosts in tasks they may not support), versions, meshes (load per mesh).",
      "params": {"name": {"type": "string", "enum": list(REPORTS)},

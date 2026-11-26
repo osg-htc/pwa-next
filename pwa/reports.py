@@ -11,6 +11,7 @@ import re
 from . import models as m
 from . import specforms, testinfo
 from .services import Membership
+from .sites import domain_of
 
 STALE_DAYS = 14
 DAY = 86400.0
@@ -224,3 +225,81 @@ def between(all_tasks, a, b=None):
             rows.append({"task": t, "direction": "both directions" if forward and back else
                          ("%s → %s" % (a.hostname, b.hostname) if forward else "%s → %s" % (b.hostname, a.hostname))})
     return rows
+
+
+# --------------------------------------------------------------------------
+# Follow-up with sites: silent hosts grouped by who runs them
+# --------------------------------------------------------------------------
+
+ACTIONS = {
+    "reinstall": "Reinstall with perfSONAR 5.2 (4.x and older get no updates)",
+    "update": "Update to perfSONAR 5.2, then check it registers with the Lookup Service",
+    "check": "Check the host is up and its Lookup Service registration works (the software is current)",
+    "never": "Added by hand and never registered: check it is running, then register it",
+    "unknown": "Check the host is up; it never reported a release",
+}
+
+
+def silent_hosts(all_tasks, now=None):
+    """Hosts in enabled tasks that the Lookup Service has not listed lately, or ever."""
+    now = now or datetime.datetime.utcnow()
+    cutoff = now - datetime.timedelta(days=STALE_DAYS)
+    hosts, meshes = {}, collections.defaultdict(set)
+    for t in all_tasks:
+        for h in t.hosts.values():
+            if (h.last_seen is None) or (h.source == "lookup" and h.last_seen < cutoff):
+                hosts[h.id] = h
+                meshes[h.id].add(t.mesh.slug)
+    return hosts, meshes
+
+
+def action_for(host):
+    v = _version(host)
+    if not v:
+        return "never" if host.last_seen is None and host.source != "lookup" else "unknown"
+    key = _version_key(v)
+    if key < (5,):
+        return "reinstall"
+    if key < (5, 2):
+        return "update"
+    return "check"
+
+
+def follow_up(all_tasks, registry, now=None):
+    """Silent hosts grouped by site, largest groups first, for writing to sites."""
+    now = now or datetime.datetime.utcnow()
+    hosts, meshes = silent_hosts(all_tasks, now)
+    known = (registry or {}).get("hosts") or {}
+    groups = {}
+    for h in hosts.values():
+        reg = known.get(h.hostname) or {}
+        reported = h.site if h.site and not h.site.startswith("(") else None   # "(pScheduler at x.org)" is a placeholder
+        site = reg.get("site") or reported or "Unknown site (%s)" % domain_of(h.hostname)
+        g = groups.setdefault(site, {"site": site, "hosts": [], "reach": [], "experiments": set(),
+                                     "country": None, "tier": None, "federation": None, "ngi": None,
+                                     "gocdb": None, "registered": False})
+        cric, gocdb, osg = reg.get("cric") or {}, reg.get("gocdb") or {}, reg.get("osg") or {}
+        g["registered"] = g["registered"] or bool(reg)
+        g["country"] = g["country"] or cric.get("country") or gocdb.get("country") or (h.info or {}).get("location-country")
+        g["tier"] = g["tier"] or cric.get("tier")
+        g["federation"] = g["federation"] or cric.get("federation")
+        g["ngi"] = g["ngi"] or gocdb.get("ngi")
+        g["gocdb"] = g["gocdb"] or gocdb.get("portal")
+        g["experiments"].update(cric.get("experiments") or [])
+        for way in reg.get("reach") or []:
+            if way not in g["reach"]:
+                g["reach"].append(way)
+        action = action_for(h)
+        days = (now - h.last_seen).days if h.last_seen else None
+        g["hosts"].append({"host": h, "release": _version(h), "action": action, "action_text": ACTIONS[action],
+                           "silent_days": days, "meshes": sorted(meshes[h.id]),
+                           "cric": ", ".join(("%s %s" % (s.get("flavour") or "", s.get("status") or s.get("state") or "")
+                                              ).strip() for s in cric.get("services") or []) or None,
+                           "matched": reg.get("matched")})
+    out = []
+    for g in groups.values():
+        g["experiments"] = sorted(g["experiments"])
+        g["hosts"].sort(key=lambda x: (x["silent_days"] is None, -(x["silent_days"] or 0), x["host"].hostname))
+        out.append(g)
+    out.sort(key=lambda g: (-len(g["hosts"]), g["site"].lower()))
+    return out

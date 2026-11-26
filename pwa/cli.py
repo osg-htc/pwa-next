@@ -9,6 +9,8 @@
                              set branding from a JSON file (and optionally the logo),
                              as the Branding page would; for scripted deployments
   serve [--port N]           development web server (never for production)
+  site-sync [--dry-run]      record who runs each host and how to reach them, from
+                             WLCG CRIC, GOCDB and OSG Topology (Reports > follow-up)
   mcp --as LOGIN [--allow-changes]
                              MCP server on standard input/output for AI assistants,
                              acting as that account (read-only unless --allow-changes);
@@ -38,6 +40,8 @@ def main(argv=None):
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8085)
     p.add_argument("--host", default="127.0.0.1")
+    p = sub.add_parser("site-sync")
+    p.add_argument("--dry-run", action="store_true")
     p = sub.add_parser("mcp")
     p.add_argument("--as", dest="login", required=True,
                    help="the account to act as: its login (CILogon subject or password-file name) or e-mail")
@@ -68,6 +72,19 @@ def main(argv=None):
         print(importer.import_pwa(session, args.export_dir))
     elif args.command == "branding":
         return _branding(session, cfg, args)
+    elif args.command == "site-sync":
+        from . import sites
+        r = sites.sync(session, ca=cfg.get("REGISTRY_CA"), dry_run=args.dry_run)
+        hosts = r["hosts"]
+        import collections
+        how = collections.Counter(v.get("matched") for v in hosts.values())
+        print("%sregistries: %s; %d inventory hosts matched (%s)" % (
+            "(dry run) " if args.dry_run else "",
+            ", ".join("%s %d" % (k, n) for k, n in r["counts"].items()), len(hosts),
+            ", ".join("%d by %s" % (n, k) for k, n in how.most_common())))
+        for k, e in r["errors"].items():
+            print("could not read %s: %s" % (k, e), file=sys.stderr)
+        return 1 if r["errors"] else 0
     elif args.command == "lookup-sync":
         from . import lookup
         services, hosts = lookup.fetch(args.url or cfg["LOOKUP_URL"])

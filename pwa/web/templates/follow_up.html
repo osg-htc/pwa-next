@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Follow-up with sites{% endblock %}
+{% block main %}
+<p class="crumbs"><a href="{{ url_for('ui.reports_page') }}">Reports</a> ›</p>
+<h1>Follow-up with sites</h1>
+<p class="lead">{{ hosts }} host{{ "" if hosts == 1 else "s" }} in enabled tasks {{ "has" if hosts == 1 else "have" }} not been listed by the Lookup Service for more than {{ stale_days }} days, or never, at {{ groups|length }} site{{ "" if groups|length == 1 else "s" }}. Their tests cannot produce results until the site acts. A host that registers again rejoins its meshes by itself and leaves this list at the next hourly refresh.</p>
+
+<section class="card">
+  <h2>What the sites need to do</h2>
+  <table class="plain">
+    {% for key in ["reinstall", "update", "check", "never", "unknown"] %}{% if actions[key] %}
+    <tr><td>{{ actions[key] }}</td><td>{{ action_text[key] }}</td></tr>
+    {% endif %}{% endfor %}
+  </table>
+  <p class="help">Worked out from the release each host last reported.
+  {% if registry.fetched %}Sites and contact routes from WLCG CRIC, GOCDB and OSG Topology, read {{ registry.fetched[:10] }}{% if registry.errors %} (not read this time: {{ registry.errors|join(", ") }}){% endif %}.{% else %}Who runs each host is not known yet: an administrator runs <code>pwa site-sync</code> to read it from WLCG CRIC, GOCDB and OSG Topology.{% endif %}
+  <a href="{{ url_for('ui.reports_follow_up_csv') }}">Download as CSV</a> for a spreadsheet or a ticket campaign.</p>
+</section>
+
+{% for grp in groups %}
+<section class="card">
+  <h2>{{ grp.site }} <span class="quiet">· {{ grp.hosts|length }} host{{ "" if grp.hosts|length == 1 else "s" }}</span></h2>
+  <p class="help">{% set bits = [] %}{% if grp.country %}{% set _ = bits.append(grp.country) %}{% endif %}{% if grp.tier is not none %}{% set _ = bits.append("Tier " ~ grp.tier) %}{% endif %}{% if grp.federation %}{% set _ = bits.append(grp.federation) %}{% endif %}{% if grp.ngi %}{% set _ = bits.append(grp.ngi) %}{% endif %}{% if grp.experiments %}{% set _ = bits.append(grp.experiments|join(", ")|upper) %}{% endif %}{{ bits|join(" · ") }}</p>
+  {% if grp.reach or grp.gocdb %}
+  <p><b>How to reach them:</b> {{ grp.reach|join("; ") }}{% if grp.gocdb %} (<a href="{{ grp.gocdb }}" rel="noopener">GOCDB site page</a>){% endif %}</p>
+  {% else %}
+  <p class="quiet">Not found in WLCG CRIC, GOCDB or OSG Topology: find the site's contact by other means.</p>
+  {% endif %}
+  <table>
+    <tr><th>Host</th><th>Last release</th><th>Silent for</th><th>What to ask</th><th>Meshes</th><th>CRIC entry</th></tr>
+    {% for x in grp.hosts %}
+    <tr><td><a href="{{ url_for('ui.host', ident=x.host.id) }}">{{ x.host.hostname }}</a></td>
+        <td>{{ x.release or "none" }}</td>
+        <td>{% if x.silent_days is none %}never registered{% else %}{{ x.silent_days }} days{% endif %}</td>
+        <td>{{ x.action_text }}</td>
+        <td>{{ x.meshes|join(", ") }}</td>
+        <td>{{ x.cric or "not listed" }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% else %}
+<section class="card"><p>None: every host in an enabled task is registering.</p></section>
+{% endfor %}
+{% endblock %}

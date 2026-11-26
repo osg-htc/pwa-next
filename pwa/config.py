@@ -13,6 +13,8 @@ PWA_SECRET_KEY     Signs the browser session cookie.
 PWA_SECRET_KEY_FILE  Alternatively, a file holding that key (keeps it out of
                    configuration management).
 PWA_LOOKUP_URL     Lookup Service search endpoint for `pwa lookup-sync`.
+PWA_REGISTRY_CA    CA file or directory added for `pwa site-sync` (WLCG CRIC's chain ends at
+                   CERN Root CA 2: /etc/grid-security/certificates has it).
 PWA_ISSUES_URL     Where the Help page sends bug reports and feature requests
                    (default: the pwa-next issue tracker on GitHub).
 """
@@ -53,6 +55,7 @@ def load(overrides=None):
         "SITE_NAME": get("PWA_SITE_NAME", "pSConfig Web Admin"),
         "LOOKUP_URL": get("PWA_LOOKUP_URL", "http://35.223.142.206/lookup/_search"),
         "ISSUES_URL": get("PWA_ISSUES_URL", "https://github.com/osg-htc/pwa-next/issues"),
+        "REGISTRY_CA": get("PWA_REGISTRY_CA"),
     }
     cfg.update(overrides or {})
     return cfg
