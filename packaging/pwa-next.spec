@@ -1,5 +1,5 @@
 Name:           pwa-next
-Version:        0.2.2
+Version:        0.2.3
 Release:        1%{?dist}
 Summary:        Web administration for perfSONAR pSConfig meshes
 
@@ -41,6 +41,8 @@ install -D -m 0644 deploy/pwa.wsgi                     %{buildroot}%{_datadir}/%
 install -D -m 0640 packaging/pwa.env                   %{buildroot}%{_sysconfdir}/pwa/pwa.env
 install -D -m 0644 packaging/pwa-lookup-sync.service   %{buildroot}%{_unitdir}/pwa-lookup-sync.service
 install -D -m 0644 packaging/pwa-lookup-sync.timer     %{buildroot}%{_unitdir}/pwa-lookup-sync.timer
+install -D -m 0644 packaging/pwa-site-sync.service     %{buildroot}%{_unitdir}/pwa-site-sync.service
+install -D -m 0644 packaging/pwa-site-sync.timer       %{buildroot}%{_unitdir}/pwa-site-sync.timer
 install -d -m 0755 %{buildroot}%{_sharedstatedir}/pwa/pub
 ln -s %{python3_sitelib}/pwa/web/static %{buildroot}%{_datadir}/%{name}/static
 install -D -m 0755 tools/check_import.py   %{buildroot}%{_datadir}/%{name}/tools/check_import.py
@@ -54,13 +56,13 @@ getent passwd pwa >/dev/null || \
 exit 0
 
 %post
-%systemd_post pwa-lookup-sync.timer
+%systemd_post pwa-lookup-sync.timer pwa-site-sync.timer
 
 %preun
-%systemd_preun pwa-lookup-sync.timer
+%systemd_preun pwa-lookup-sync.timer pwa-site-sync.timer
 
 %postun
-%systemd_postun pwa-lookup-sync.timer
+%systemd_postun pwa-lookup-sync.timer pwa-site-sync.timer
 
 %files
 %license LICENSE
@@ -71,12 +73,21 @@ exit 0
 %{_datadir}/%{name}/
 %{_unitdir}/pwa-lookup-sync.service
 %{_unitdir}/pwa-lookup-sync.timer
+%{_unitdir}/pwa-site-sync.service
+%{_unitdir}/pwa-site-sync.timer
 %dir %attr(0750,root,pwa) %{_sysconfdir}/pwa
 %config(noreplace) %attr(0640,root,pwa) %{_sysconfdir}/pwa/pwa.env
 %dir %attr(0755,pwa,pwa) %{_sharedstatedir}/pwa
 %dir %attr(0755,pwa,pwa) %{_sharedstatedir}/pwa/pub
 
 %changelog
+* Thu Nov 26 2026 Shawn McKee - 0.2.3-1
+- Reports > Follow-up with sites: silent hosts grouped by the site that runs
+  them, what to ask each site, and how to reach it (also as CSV and over MCP).
+- `pwa site-sync` and a daily pwa-site-sync.timer: site, tier, federation,
+  NGI, experiments and contact route for each host, from WLCG CRIC, GOCDB and
+  OSG Topology; PWA_REGISTRY_CA for CRIC's CERN root.
+
 * Thu Nov 26 2026 Shawn McKee - 0.2.2-1
 - `pwa mcp`: MCP server for AI assistants over stdio, acting as one account
   with its permissions; read tools, and change tools with --allow-changes

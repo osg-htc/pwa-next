@@ -1,6 +1,6 @@
 # Deploying pwa-next with the AGLT2 Ansible repository
 
-Drafts for review. Nothing here has been committed to the AGLT2 SVN.
+The AGLT2 copies live in the Ansible SVN (`playbooks/pwa.yaml`, `configs/pwa/`); keep them in step with these.
 
 ## What goes where
 
@@ -9,6 +9,7 @@ Drafts for review. Nothing here has been committed to the AGLT2 SVN.
 | `../../pwa.yaml` | `playbooks/pwa.yaml` |
 | `pwa.env.j2`, `pwa.conf.j2`, `pwa-shadow-check.j2` | `configs/pwa/` |
 | `branding-wlcg.json` (and optionally `branding-wlcg-logo.svg` or `.png`) | `configs/pwa/`; chosen per host with `pwa_branding: wlcg` |
+| `registry-ca.pem` (CERN Root Certification Authority 2, SHA-256 fingerprint 18:7F:4F:7B:…:8A:32:0C) | `configs/pwa/`; trusted by `pwa site-sync` only, because WLCG CRIC's chain ends at this root and RHEL does not ship it |
 | `pwa-export-for-shadow.sh` | not in Ansible: copied by hand to the production PWA host |
 
 The playbook was rehearsed in an EL9 container with systemd (`packaging/rehearse-ansible.sh`): install, PostgreSQL setup, settings, Apache with password sign-in, timer, and a second run that changes nothing.

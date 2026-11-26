@@ -25,6 +25,8 @@
   #   pwa_admins       made service administrators at first sign-in: htpasswd names or
   #                    CILogon subjects, comma-separated
   #   pwa_shadow_of    production PWA to compare against every night (empty = none)
+  #   pwa_registry_ca  CA file in configs/pwa trusted by `pwa site-sync` (default registry-ca.pem, CERN
+  #                    Root CA 2, which WLCG CRIC's chain ends at; empty = system trust only)
   #   pwa_branding     name of a branding in configs/pwa: branding-<name>.json, and optionally a logo
   #                    branding-<name>-logo.svg or .png (empty = the pwa-next defaults). Applied only
   #                    when those files change, so edits made on the Branding page are kept until then.
@@ -35,6 +37,7 @@
       pwa_admins: "{{ pwa_admins | default('') }}"
       pwa_shadow_of: "{{ pwa_shadow_of | default('') }}"
       pwa_branding: "{{ pwa_branding | default('') }}"
+      pwa_registry_ca: "{{ pwa_registry_ca | default('registry-ca.pem') }}"
 
   # Checked first, so that nothing below can leave httpd with a configuration it cannot start with.
   - name: is the sign-in file in place
@@ -96,6 +99,15 @@
       python3 -c 'import secrets; print(secrets.token_hex(32))' > /etc/httpd/pwa-oidc-passphrase
     args:
       creates: /etc/httpd/pwa-oidc-passphrase
+
+  - name: CA for the site registries (pwa site-sync)
+    copy:
+      src: '{{ stashdir }}/{{ pwa_registry_ca }}'
+      dest: /etc/pwa/registry-ca.pem
+      owner: root
+      group: pwa
+      mode: '0644'
+    when: pwa_registry_ca | length > 0
 
   - name: pwa settings
     template:
@@ -198,6 +210,14 @@
       name: pwa-lookup-sync.timer
       state: started
       enabled: true
+
+  # Who runs each host and how to reach the site (Reports > Follow-up with sites).
+  - name: daily refresh of the site registries
+    systemd:
+      name: pwa-site-sync.timer
+      state: started
+      enabled: true
+      daemon_reload: true
 
   # Nightly: import a fresh copy of the production PWA's data into a scratch
   # database, publish, and compare with what production serves. CheckMK shows it

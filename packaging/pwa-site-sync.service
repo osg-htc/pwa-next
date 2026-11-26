@@ -1,0 +1,12 @@
+[Unit]
+Description=Record who runs each perfSONAR host (WLCG CRIC, GOCDB, OSG Topology) for pwa
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pwa
+Group=pwa
+Environment=PWA_CONFIG=/etc/pwa/pwa.env
+ExecStart=/usr/bin/pwa site-sync
+TimeoutStartSec=900
