@@ -154,6 +154,16 @@
       mode: '0644'
     notify: reload httpd
 
+  # mod_auth_openidc 2.4.16 (RHEL 9 AppStream) crashes every httpd worker at start-up when the module
+  # is loaded but not configured, i.e. with password sign-in. So load it only for CILogon. The
+  # package marks this file %config(noreplace), so updates keep the setting.
+  - name: load the CILogon module only when it is used
+    lineinfile:
+      path: /etc/httpd/conf.modules.d/10-auth_openidc.conf
+      regexp: '^\s*#?\s*LoadModule\s+auth_openidc_module'
+      line: "{{ '' if pwa_signin == 'oidc' else '# (not loaded: pwa uses password sign-in) ' }}LoadModule auth_openidc_module modules/mod_auth_openidc.so"
+    notify: reload httpd
+
   - name: start httpd
     service:
       name: httpd
