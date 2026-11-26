@@ -1,5 +1,5 @@
 Name:           pwa-next
-Version:        0.1.0
+Version:        0.2.0
 Release:        1%{?dist}
 Summary:        Web administration for perfSONAR pSConfig meshes
 
@@ -77,5 +77,13 @@ exit 0
 %dir %attr(0755,pwa,pwa) %{_sharedstatedir}/pwa/pub
 
 %changelog
+* Thu Nov 26 2026 Shawn McKee - 0.2.0-1
+- Help page, test-type help with tool/option support, Tests filters, Reports.
+- Branding (settings page and `pwa branding`), pwa-next logo and favicons.
+- Single-host test types published as pSConfig list groups.
+- Security: no-store pages, framing and sniffing headers, debugger off,
+  2 MB request limit; clearer explanations of test problems.
+- Fixes: UTF-8 data files under Apache, filter drop-downs, PWA "streams" import.
+
 * Fri Nov 20 2026 Shawn McKee - 0.1.0-1
 - First package of the prototype.
