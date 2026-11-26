@@ -76,13 +76,28 @@ echo "      hosts in the inventory: $hosts"
 check "inventory was filled" "yes" "$([ "$hosts" -gt 500 ] && echo yes || echo no)"
 check "a per-host feed was published" "200" "$(code "https://localhost/pub/auto/$(inside runuser -u postgres -- psql -At -d pwa -c 'select hostname from hosts order by hostname limit 1')")"
 
+echo "=== the site registries (WLCG CRIC, GOCDB, OSG Topology), run once as the service would"
+check "site registry timer is running and enabled" "active enabled" "$(inside systemctl is-active pwa-site-sync.timer) $(inside systemctl is-enabled pwa-site-sync.timer)"
+check "registry CA installed" "1" "$(inside openssl x509 -in /etc/pwa/registry-ca.pem -noout -subject 2>/dev/null | grep -c 'CERN Root Certification Authority 2')"
+check "registry CA set for pwa" "1" "$(inside grep -c '^PWA_REGISTRY_CA=/etc/pwa/registry-ca.pem' /etc/pwa/pwa.env)"
+inside systemctl start pwa-site-sync.service || true
+check "site registry service succeeded" "success" "$(inside systemctl show -p Result --value pwa-site-sync.service)"
+matched=$(inside runuser -u postgres -- psql -At -d pwa -c "select json_object_length((value->'hosts')::json) from settings where key='site_registry'")
+echo "      inventory hosts matched to a site: $matched"
+check "registries matched hosts" "yes" "$([ "${matched:-0}" -gt 50 ] && echo yes || echo no)"
+
 echo "=== variants render and parse"
 out=$(play -e pwa_shadow_of=psconfig.example.org || true)
 check "shadow comparison job installed" "1" "$(inside grep -c 'mk-job pwa_shadow' /etc/cron.d/pwa_shadow.cron)"
 check "shadow script is valid shell" "0" "$(inside bash -n /usr/local/sbin/pwa-shadow-check; echo $?)"
 inside bash -c 'printf "OIDCClientID test\nOIDCClientSecret test\n" > /etc/httpd/pwa-oidc-client.conf; chmod 600 /etc/httpd/pwa-oidc-client.conf'
-inside bash -c "cd /root/ansible/playbooks && ansible localhost -i ../inventory -m template -a 'src=../configs/pwa/pwa.conf.j2 dest=/etc/httpd/conf.d/pwa.conf' -e pwa_signin=oidc -e pwa_public_name=localhost >/dev/null"
+out=$(play -e pwa_signin=oidc)             # the real path: the playbook also loads mod_auth_openidc
+check "CILogon run of the playbook" "1" "$(echo "$out" | grep -E '^localhost' | grep -c 'failed=0')"
 check "CILogon variant accepted by httpd" "1" "$(inside httpd -t 2>&1 | grep -c 'Syntax OK')"
+check "CILogon module loaded" "1" "$(inside httpd -M 2>/dev/null | grep -c auth_openidc)"
+out=$(play)                                 # and back to password sign-in: the module is unloaded again
+check "password sign-in again, module unloaded" "0" "$(inside httpd -M 2>/dev/null | grep -c auth_openidc)"
+check "httpd still accepts it" "1" "$(inside httpd -t 2>&1 | grep -c 'Syntax OK')"
 
 echo
 if [ $failed = 0 ]; then echo "ANSIBLE REHEARSAL PASSED"; else echo "ANSIBLE REHEARSAL FAILED"; fi
