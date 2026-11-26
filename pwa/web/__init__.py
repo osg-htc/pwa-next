@@ -146,4 +146,5 @@ def _current_user(app, session):
 
 def publish_now(app, session):
     """Re-render and publish after a change.  Returns the publisher's result."""
-    return publisher.publish_all(session, app.config["PUBLISH_DIR"], app.config["PUBLIC_URL"])
+    return publisher.publish_all(session, app.config["PUBLISH_DIR"], app.config["PUBLIC_URL"],
+                                 merge=app.config.get("MERGE_DUPLICATES") or ())

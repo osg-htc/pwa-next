@@ -15,6 +15,9 @@ PWA_SECRET_KEY_FILE  Alternatively, a file holding that key (keeps it out of
 PWA_LOOKUP_URL     Lookup Service search endpoint for `pwa lookup-sync`.
 PWA_REGISTRY_CA    CA file or directory added for `pwa site-sync` (WLCG CRIC's chain ends at
                    CERN Root CA 2: /etc/grid-security/certificates has it).
+PWA_MERGE_DUPLICATES  Test types (comma-separated, e.g. "trace") whose identical tasks in
+                   several meshes measure each shared host pair once, in the per-host feeds.
+                   Empty (the default) publishes every task as defined.
 PWA_ISSUES_URL     Where the Help page sends bug reports and feature requests
                    (default: the pwa-next issue tracker on GitHub).
 """
@@ -56,6 +59,7 @@ def load(overrides=None):
         "LOOKUP_URL": get("PWA_LOOKUP_URL", "http://35.223.142.206/lookup/_search"),
         "ISSUES_URL": get("PWA_ISSUES_URL", "https://github.com/osg-htc/pwa-next/issues"),
         "REGISTRY_CA": get("PWA_REGISTRY_CA"),
+        "MERGE_DUPLICATES": tuple(x.strip() for x in (get("PWA_MERGE_DUPLICATES", "") or "").split(",") if x.strip()),
     }
     cfg.update(overrides or {})
     return cfg

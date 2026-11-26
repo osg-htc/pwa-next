@@ -270,7 +270,8 @@ class Context:
 
     def commit_and_publish(self):
         self.s.commit()
-        r = publish.publish_all(self.s, self.cfg["PUBLISH_DIR"], self.cfg["PUBLIC_URL"])
+        r = publish.publish_all(self.s, self.cfg["PUBLISH_DIR"], self.cfg["PUBLIC_URL"],
+                               merge=self.cfg.get("MERGE_DUPLICATES") or ())
         return {"files_written": r["written"],
                 "not_published": [{"file": p, "reason": why} for p, why in r["failed"]][:10],
                 "withheld_tasks": [{"mesh": slug, "task": t, "reason": why} for slug, t, why in r["withheld"]][:10]}
@@ -462,7 +463,7 @@ SUMMARY_OVER = 20000      # bytes of JSON; a busy host's feed runs to 150 kB
 def t_published_config(ctx, mesh=None, host=None, full=False):
     if bool(mesh) == bool(host):
         raise ToolError("Give either a mesh or a host.")
-    b = publish.Builder(ctx.s)
+    b = publish.Builder(ctx.s, merge=ctx.cfg.get("MERGE_DUPLICATES") or ())
     if mesh:
         x = _mesh(ctx.s, mesh)
         good, _ = b.publishable([t for t in x.tasks if t.enabled])

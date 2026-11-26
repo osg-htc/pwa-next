@@ -148,6 +148,7 @@ Pages also carry `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and 
 | pScheduler-side validation | Validation uses the bundled schemas; asking a live pScheduler (`psconfig validate` does) would catch what schemas cannot. |
 | Schema migrations | Done (Alembic from RHEL 9 AppStream, `pwa/schema.py`, `pwa/migrations/`): every command brings the schema up to date; databases from 0.2.3 and older are stamped as the baseline first. A new table or column needs a model change AND a migration; `tests/test_schema.py` checks they agree. |
 | Browser check | Pages were exercised over HTTP and by tests, but not looked at in a browser by the author. |
+| Merging identical tasks | Implemented, off by default (`PWA_MERGE_DUPLICATES=trace`). In per-host feeds, pairs that several meshes measure with identical settings are carved out of each task (pSConfig `excludes`, one per direction) and measured once by a shared task listed under every mesh. On the 26 Nov WLCG data it removes 6,672 duplicate trace schedules (about 960,000 runs a day), loses no pair, keeps every feed valid, and grows the feeds from 6.7 to 9.1 MB. Turn it on only after checking that the dashboards show a shared task under each of its meshes; mesh files are never merged. |
 | Lookup Service 5.3 format | Not implemented; the current format is. |
 
 ## Layout

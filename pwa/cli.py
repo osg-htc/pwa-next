@@ -98,7 +98,7 @@ def main(argv=None):
                 print("  new:", name)
             return 0
     if args.command in ("import-pwa", "publish", "lookup-sync"):
-        r = publish.publish_all(session, cfg["PUBLISH_DIR"], cfg["PUBLIC_URL"])
+        r = publish.publish_all(session, cfg["PUBLISH_DIR"], cfg["PUBLIC_URL"], merge=cfg["MERGE_DUPLICATES"])
         print("published to %s: %d written, %d unchanged, %d removed" % (
             cfg["PUBLISH_DIR"], r["written"], r["unchanged"], r["removed"]))
         for path, reason in r["failed"]:

@@ -61,9 +61,10 @@ def schedule_for(test):
 class Builder:
     """Assembles templates.  One instance per publish run (it caches membership)."""
 
-    def __init__(self, session, reference=True):
+    def __init__(self, session, reference=True, merge=()):
         self.session = session
         self.reference = reference
+        self.merge = set(merge or ())        # test types whose identical tasks share pairs (see merge_duplicates)
         self.membership = Membership(session)
         self._spec_errors = {}
 
@@ -181,7 +182,70 @@ class Builder:
             names.setdefault(t.name, set()).add(t.mesh_id)
         keyed = [(t.name if len(names[t.name]) == 1 else "%s [%s]" % (t.name, t.mesh.slug), t)
                  for t in tasks]
-        return self.assemble("Auto-MeshConfig for " + host.hostname, keyed)
+        template = self.assemble("Auto-MeshConfig for " + host.hostname, keyed)
+        if self.merge:
+            self.merge_duplicates(template, host, keyed)
+        return template
+
+    def merge_duplicates(self, template, host, keyed):
+        """Measure each pair once when several meshes ask for the same measurement.
+
+        Tasks of a type in self.merge with the same test options, schedule, tools
+        and archives are "identical".  For every partner of `host` that two or more
+        identical tasks pair it with, both directions are excluded from each of
+        those tasks' groups (pSConfig excludes are one-way: local-address is the
+        source) and measured instead by one shared task over a disjoint group
+        {host} x {partners}, listed under every mesh that wanted them.  Every
+        host's feed makes the same split, so each ordered pair is still measured
+        exactly once.  Only per-host feeds are merged; mesh files stay as they are.
+        """
+        alike = {}
+        for key, t in keyed:
+            if t.test.type not in self.merge or testinfo.addressing(t.test.type) != "pair":
+                continue
+            sig = (t.test.type, json.dumps(t.test.spec or {}, sort_keys=True), t.test.repeat, t.test.slip,
+                   tuple(t.test.tools or ()), tuple(sorted(archive_key(a) for a in t.mesh.archives)))
+            alike.setdefault(sig, []).append((key, t))
+        shared = 0
+        for items in alike.values():
+            if len(items) < 2:
+                continue
+            wanted = {}
+            for key, t in items:
+                a, b = self.task_hosts(t)
+                ids_a, ids_b = {h.id for h in a}, {h.id for h in b}
+                if t.topology == "disjoint":
+                    partners = ({h.hostname for h in b} if host.id in ids_a else set()) | \
+                               ({h.hostname for h in a} if host.id in ids_b else set())
+                else:
+                    partners = {h.hostname for h in a} if host.id in ids_a else set()
+                for x in partners - {host.hostname}:
+                    wanted.setdefault(x, []).append(key)
+            by_keys = {}
+            for x, keys in wanted.items():
+                if len(keys) > 1:
+                    by_keys.setdefault(tuple(keys), []).append(x)
+            for keys, partners in sorted(by_keys.items()):
+                partners.sort()
+                for k in keys:
+                    excludes = template["groups"][k].setdefault("excludes", [])
+                    excludes.append({"local-address": {"name": host.hostname},
+                                     "target-addresses": [{"name": x} for x in partners]})
+                    excludes += [{"local-address": {"name": x}, "target-addresses": [{"name": host.hostname}]}
+                                 for x in partners]
+                shared += 1
+                first = dict(keyed)[keys[0]]
+                skey = "%s [shared %d]" % (keys[0], shared)
+                template["groups"][skey] = {"type": "disjoint", "a-addresses": [{"name": host.hostname}],
+                                            "b-addresses": [{"name": x} for x in partners]}
+                entry = json.loads(json.dumps(template["tasks"][keys[0]]))
+                entry["group"] = skey
+                meshes = [dict(keyed)[k].mesh.name for k in keys]
+                entry["_meta"] = {"display-name": first.name, "merged-from": list(keys)}
+                if self.reference:
+                    entry["reference"] = {"display-task-name": first.name, "display-task-group": meshes}
+                template["tasks"][skey] = entry
+        return shared
 
     # -- validation ---------------------------------------------------------
 
@@ -235,13 +299,13 @@ def _write_atomically(path, data):
         raise
 
 
-def publish_all(session, out_dir, base_url, reference=True):
+def publish_all(session, out_dir, base_url, reference=True, merge=()):
     """Render everything; replace the files that changed and are valid.
 
     Returns {"written", "unchanged", "removed", "failed": [(path, reason)],
     "withheld": [(mesh slug, task name, reason)]}.
     """
-    builder = Builder(session, reference=reference)
+    builder = Builder(session, reference=reference, merge=merge)
     now = datetime.datetime.utcnow()
     result = {"written": 0, "unchanged": 0, "removed": 0, "failed": [], "withheld": []}
     state = {p.path: p for p in session.query(m.Publication)}
