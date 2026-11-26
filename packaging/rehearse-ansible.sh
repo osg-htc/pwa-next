@@ -82,7 +82,7 @@ check "registry CA installed" "1" "$(inside openssl x509 -in /etc/pwa/registry-c
 check "registry CA set for pwa" "1" "$(inside grep -c '^PWA_REGISTRY_CA=/etc/pwa/registry-ca.pem' /etc/pwa/pwa.env)"
 inside systemctl start pwa-site-sync.service || true
 check "site registry service succeeded" "success" "$(inside systemctl show -p Result --value pwa-site-sync.service)"
-matched=$(inside runuser -u postgres -- psql -At -d pwa -c "select json_object_length((value->'hosts')::json) from settings where key='site_registry'")
+matched=$(inside runuser -u postgres -- psql -At -d pwa -c "select count(*) from settings, json_object_keys((value->'hosts')::json) where key='site_registry'")
 echo "      inventory hosts matched to a site: $matched"
 check "registries matched hosts" "yes" "$([ "${matched:-0}" -gt 50 ] && echo yes || echo no)"
 
