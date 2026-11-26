@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import csrf_field %}
 {% block title %}Follow-up with sites{% endblock %}
 {% block main %}
 <p class="crumbs"><a href="{{ url_for('ui.reports_page') }}">Reports</a> ›</p>
@@ -17,9 +18,19 @@
   <a href="{{ url_for('ui.reports_follow_up_csv') }}">Download as CSV</a> for a spreadsheet or a ticket campaign.</p>
 </section>
 
-{% for grp in groups %}
 <section class="card">
-  <h2>{{ grp.site }} <span class="quiet">· {{ grp.hosts|length }} host{{ "" if grp.hosts|length == 1 else "s" }}</span></h2>
+  <h2>Where the follow-up stands</h2>
+  <table class="plain">
+    <tr><td>{{ states["none"] or 0 }}</td><td>sites not contacted yet</td></tr>
+    {% for key, label in statuses.items() %}{% if states[key] %}<tr><td>{{ states[key] }}</td><td>{{ label|lower }}</td></tr>{% endif %}{% endfor %}
+  </table>
+  <p class="help">Each site's status is its latest entry. Service administrators, and anyone who can change a mesh one of the site's hosts is in, can record entries; History shows who did.</p>
+</section>
+
+{% for grp in groups %}
+<section class="card" id="{{ grp.anchor }}">
+  <h2>{{ grp.site }} <span class="quiet">· {{ grp.hosts|length }} host{{ "" if grp.hosts|length == 1 else "s" }}</span>
+    {% if grp.status %}<span class="pill{% if grp.status in ("fixed", "retired") %} ok{% elif grp.status == "no-reply" %} warn{% endif %}">{{ statuses[grp.status] }}</span>{% else %}<span class="pill warn">not contacted yet</span>{% endif %}</h2>
   <p class="help">{% set bits = [] %}{% if grp.country %}{% set _ = bits.append(grp.country) %}{% endif %}{% if grp.tier is not none %}{% set _ = bits.append("Tier " ~ grp.tier) %}{% endif %}{% if grp.federation %}{% set _ = bits.append(grp.federation) %}{% endif %}{% if grp.ngi %}{% set _ = bits.append(grp.ngi) %}{% endif %}{% if grp.experiments %}{% set _ = bits.append(grp.experiments|join(", ")|upper) %}{% endif %}{{ bits|join(" · ") }}</p>
   {% if grp.reach or grp.gocdb %}
   <p><b>How to reach them:</b> {{ grp.reach|join("; ") }}{% if grp.gocdb %} (<a href="{{ grp.gocdb }}" rel="noopener">GOCDB site page</a>){% endif %}</p>
@@ -37,6 +48,31 @@
         <td>{{ x.cric or "not listed" }}</td></tr>
     {% endfor %}
   </table>
+  {% if grp.contacts %}
+  <h3>Follow-up so far</h3>
+  <table class="plain">
+    {% for c in grp.contacts %}
+    <tr><td>{{ c.contacted.isoformat() }}</td><td><b>{{ statuses[c.status] }}</b>{% if c.via %} · {{ c.via }}{% endif %}{% if c.reference %} · {% if c.reference.startswith("http") %}<a href="{{ c.reference }}" rel="noopener">{{ c.reference }}</a>{% else %}{{ c.reference }}{% endif %}{% endif %}{% if c.hostname %} · {{ c.hostname }}{% endif %}{% if c.note %}<br><span class="quiet">{{ c.note }}</span>{% endif %}</td>
+        <td class="quiet">{{ c.created_by }}</td>
+        <td>{% if user.is_admin or c.created_by == user.label %}<form method="post" action="{{ url_for('ui.follow_up_delete', ident=c.id) }}" class="inline" data-confirm="Delete this entry?">{{ csrf_field() }}<button class="link danger">delete</button></form>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% if grp.can_record %}
+  <details>
+    <summary>Record a step</summary>
+    <form method="post" action="{{ url_for('ui.follow_up_record') }}" class="form">{{ csrf_field() }}
+      <input type="hidden" name="site" value="{{ grp.site }}">
+      <div class="field"><label>What happened <select name="status">{% for key, label in statuses.items() %}<option value="{{ key }}"{% if (not grp.status and key == "asked") %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label></div>
+      <div class="field"><label>When <input type="date" name="contacted" value="{{ today }}" max="{{ today }}"></label></div>
+      <div class="field"><label>How <select name="via"><option value="">—</option>{% for v in vias %}<option>{{ v }}</option>{% endfor %}</select></label></div>
+      <div class="field"><label>Ticket or reference <input name="reference" placeholder="GGUS ticket number or URL"></label></div>
+      <div class="field"><label>Only for one host <select name="hostname"><option value="">the whole site</option>{% for x in grp.hosts %}<option>{{ x.host.hostname }}</option>{% endfor %}</select></label></div>
+      <div class="field"><label>Note <input name="note" placeholder="what was asked or answered"></label></div>
+      <button>Record</button>
+    </form>
+  </details>
+  {% endif %}
 </section>
 {% else %}
 <section class="card"><p>None: every host in an enabled task is registering.</p></section>

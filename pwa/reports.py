@@ -265,8 +265,11 @@ def action_for(host):
     return "check"
 
 
-def follow_up(all_tasks, registry, now=None):
-    """Silent hosts grouped by site, largest groups first, for writing to sites."""
+def follow_up(all_tasks, registry, now=None, contacts=None):
+    """Silent hosts grouped by site, largest groups first, for writing to sites.
+
+    `contacts` = {site: [SiteContact, newest first]} (pwa.followup.contacts_by_site).
+    """
     now = now or datetime.datetime.utcnow()
     hosts, meshes = silent_hosts(all_tasks, now)
     known = (registry or {}).get("hosts") or {}
@@ -298,6 +301,8 @@ def follow_up(all_tasks, registry, now=None):
                            "matched": reg.get("matched")})
     out = []
     for g in groups.values():
+        g["contacts"] = (contacts or {}).get(g["site"], [])
+        g["status"] = g["contacts"][0].status if g["contacts"] else None
         g["experiments"] = sorted(g["experiments"])
         g["hosts"].sort(key=lambda x: (x["silent_days"] is None, -(x["silent_days"] or 0), x["host"].hostname))
         out.append(g)

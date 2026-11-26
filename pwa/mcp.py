@@ -409,14 +409,18 @@ def t_report(ctx, name, limit=25):
             {"hostname": h.hostname, "last_seen": _iso(h.last_seen)} for h in x["hosts"]][:limit]}
             for x in reports.stale(all_tasks)]}
     if name == "follow_up_by_site":
-        from . import sites
+        from . import followup, sites
         reg = sites.registry(ctx.s)
         return {"report": name, "registry_read": reg.get("fetched"), "sites": [
-            {"site": g["site"], "country": g["country"], "tier": g["tier"], "federation": g["federation"],
+            {"site": g["site"], "status": followup.STATUSES.get(g["status"], "not contacted yet"),
+             "country": g["country"], "tier": g["tier"], "federation": g["federation"],
              "ngi": g["ngi"], "experiments": g["experiments"], "how_to_reach": g["reach"], "gocdb_page": g["gocdb"],
+             "follow_up": [{"date": c.contacted.isoformat(), "status": c.status, "via": c.via,
+                            "reference": c.reference, "host": c.hostname, "note": c.note, "by": c.created_by}
+                           for c in g["contacts"][:5]],
              "hosts": [{"hostname": x["host"].hostname, "last_release": x["release"], "silent_days": x["silent_days"],
                         "ask": x["action_text"], "meshes": x["meshes"], "cric_entry": x["cric"]} for x in g["hosts"]]}
-            for g in reports.follow_up(all_tasks, reg)[:limit]]}
+            for g in reports.follow_up(all_tasks, reg, contacts=followup.contacts_by_site(ctx.s))[:limit]]}
     if name == "duplicate_measurements":
         return {"report": name, "rows": [{"type": o["type"], "pairs": o["pairs"], "same_settings": o["same_settings"],
                                           "tasks": ["%s / %s" % (x.mesh.slug, x.task.name) for x, _ in o["tasks"]]}
@@ -613,6 +617,27 @@ def t_update_test(ctx, test, options=None, repeat=None):
             "tasks_affected": len(services.test_usage(ctx.s, t)), "published": ctx.commit_and_publish()}
 
 
+def t_record_site_contact(ctx, site, status, via=None, reference=None, note=None, host=None, date=None):
+    from . import followup
+    groups = reports.follow_up(reports.tasks(ctx.s), None)
+    group = next((g for g in groups if g["site"].lower() == str(site).strip().lower()), None)
+    if group is None and not ctx.user.is_admin:
+        raise ToolError("%r is not on the follow-up list (sites: %s)." % (site, ", ".join(g["site"] for g in groups[:15])))
+    site_name = group["site"] if group else str(site).strip()
+    meshes = {x.slug: x for x in ctx.s.query(m.Mesh)}
+    if not followup.can_record(ctx.user, ctx.access, [meshes[sl] for x in (group or {}).get("hosts", [])
+                                                       for sl in x["meshes"] if sl in meshes]):
+        raise ToolError("%s may not record follow-up for %s: that needs a service administrator or someone who "
+                        "can change one of its meshes." % (ctx.user.label, site_name))
+    try:
+        entry = followup.record(ctx.s, ctx.actor, site_name, status, date, via, reference, note, host)
+    except ValueError as e:
+        raise ToolError(str(e))
+    ctx.s.commit()
+    return {"site": entry.site, "recorded": {"date": entry.contacted.isoformat(), "status": entry.status,
+                                             "via": entry.via, "reference": entry.reference, "host": entry.hostname}}
+
+
 # --------------------------------------------------------------------------
 # the tool table
 # --------------------------------------------------------------------------
@@ -690,6 +715,16 @@ TOOLS = [
      "fn": t_set_task_enabled,
      "description": "Enable or disable one task of a mesh. A disabled task stays in the mesh but is not published.",
      "params": {"mesh": S, "task": S, "enabled": {"type": "boolean"}}, "required": ["mesh", "task", "enabled"]},
+    {"name": "record_site_contact", "title": "Record follow-up with a site", "changes": True,
+     "fn": t_record_site_contact,
+     "description": "Record a step in following up with a site about its silent hosts (the follow_up_by_site "
+                    "report): status asked, replied, working, fixed, retired or no-reply; how (ticket, e-mail, "
+                    "meeting, chat, other); a ticket number or URL; a note; optionally one host; the date "
+                    "(YYYY-MM-DD, default today).",
+     "params": {"site": S, "status": {"type": "string", "enum": ["asked", "replied", "working", "fixed", "retired",
+                                                                 "no-reply"]},
+                "via": {"type": "string", "enum": ["ticket", "e-mail", "meeting", "chat", "other"]},
+                "reference": S, "note": S, "host": S, "date": S}, "required": ["site", "status"]},
     {"name": "update_test", "title": "Change a test", "changes": True, "idempotent": True, "fn": t_update_test,
      "description": "Change a test's options (an object of option names and values; null removes an option) "
                     "and/or how often it repeats (6h, PT30M, or \"continuous\"). Checked against pScheduler's "

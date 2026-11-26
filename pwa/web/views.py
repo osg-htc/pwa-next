@@ -1132,29 +1132,74 @@ def reports_page():
 @ui.route("/reports/follow-up")
 @ui.route("/reports/follow-up.csv", endpoint="reports_follow_up_csv")
 def reports_follow_up():
-    from .. import sites
+    from .. import followup, sites
     reg = sites.registry(g.db)
-    groups = reports.follow_up(reports.tasks(g.db), reg)
+    groups = reports.follow_up(reports.tasks(g.db), reg, contacts=followup.contacts_by_site(g.db))
     if request.path.endswith(".csv"):
         import csv
         import io
         buf = io.StringIO()
         w = csv.writer(buf)
         w.writerow(["site", "country", "tier", "federation", "ngi", "experiments", "how to reach", "gocdb page",
+                    "status", "last contacted", "contacted via", "reference",
                     "host", "last release", "silent days", "action", "meshes", "cric entry", "matched by"])
         for grp in groups:
+            last = grp["contacts"][0] if grp["contacts"] else None
             for x in grp["hosts"]:
                 w.writerow([grp["site"], grp["country"] or "", grp["tier"] or "", grp["federation"] or "",
                             grp["ngi"] or "", " ".join(grp["experiments"]), " | ".join(grp["reach"]),
-                            grp["gocdb"] or "", x["host"].hostname, x["release"] or "",
+                            grp["gocdb"] or "",
+                            followup.STATUSES[last.status] if last else "not contacted yet",
+                            last.contacted.isoformat() if last else "", (last.via or "") if last else "",
+                            (last.reference or "") if last else "",
+                            x["host"].hostname, x["release"] or "",
                             "" if x["silent_days"] is None else x["silent_days"], x["action_text"],
                             " ".join(x["meshes"]), x["cric"] or "", x["matched"] or ""])
         return current_app.response_class(buf.getvalue(), mimetype="text/csv", headers={
             "Content-Disposition": "attachment; filename=perfsonar-follow-up-by-site.csv"})
+    meshes = {x.slug: x for x in g.db.query(m.Mesh)}
+    for grp in groups:
+        grp["anchor"] = followup.anchor(grp["site"])
+        grp["can_record"] = followup.can_record(g.user, g.access, [meshes[s] for x in grp["hosts"]
+                                                                    for s in x["meshes"] if s in meshes])
+    states = collections.Counter(grp["status"] or "none" for grp in groups)
     return render_template("follow_up.html", groups=groups, registry=reg, stale_days=reports.STALE_DAYS,
                            hosts=sum(len(x["hosts"]) for x in groups),
                            actions=collections.Counter(x["action"] for grp in groups for x in grp["hosts"]),
-                           action_text=reports.ACTIONS)
+                           action_text=reports.ACTIONS, statuses=followup.STATUSES, vias=followup.VIAS,
+                           states=states, today=datetime.date.today().isoformat())
+
+
+@ui.route("/reports/follow-up/contacts", methods=["POST"])
+def follow_up_record():
+    from .. import followup
+    site = request.form.get("site") or ""
+    group = next((x for x in reports.follow_up(reports.tasks(g.db), None) if x["site"] == site), None)
+    meshes = {x.slug: x for x in g.db.query(m.Mesh)}
+    site_meshes = [meshes[s] for x in (group or {}).get("hosts", []) for s in x["meshes"] if s in meshes]
+    if not followup.can_record(g.user, g.access, site_meshes):
+        abort(403)
+    try:
+        entry = followup.record(g.db, g.user, site, request.form.get("status"), request.form.get("contacted"),
+                                request.form.get("via") or None, request.form.get("reference"),
+                                request.form.get("note"), request.form.get("hostname"))
+    except ValueError as e:
+        flash(str(e), "error")
+    else:
+        done("Recorded for %s: %s." % (entry.site, followup.STATUSES[entry.status].lower()), republish=False)
+    return redirect(url_for("ui.reports_follow_up") + "#" + followup.anchor(site))
+
+
+@ui.route("/reports/follow-up/contacts/<int:ident>/delete", methods=["POST"])
+def follow_up_delete(ident):
+    from .. import followup
+    entry = find(m.SiteContact, ident)
+    if not (g.user.is_admin or entry.created_by == g.user.label):
+        abort(403)
+    site = entry.site
+    followup.delete(g.db, g.user, entry)
+    done("Deleted an entry for %s." % site, republish=False)
+    return redirect(url_for("ui.reports_follow_up") + "#" + followup.anchor(site))
 
 
 @ui.route("/reports/between")

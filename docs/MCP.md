@@ -81,7 +81,7 @@ Looking (always offered):
 | `list_groups`, `group_info` | Host groups; one group's rule, included groups, effective hosts and how each got there, users |
 | `list_tests`, `test_info` | Tests; one test's options, problems pScheduler would reject, the tasks using it |
 | `test_type_help` | What a pScheduler test type measures, its tools and options |
-| `report` | The Reports page: `gone_quiet`, `duplicate_measurements`, `busiest_hosts`, `capability_gaps`, `versions`, `meshes` |
+| `report` | The Reports page: `gone_quiet`, `follow_up_by_site`, `duplicate_measurements`, `busiest_hosts`, `capability_gaps`, `versions`, `meshes` |
 | `tested_between` | What is measured between two hosts, or everything one host takes part in |
 | `published_config` | The pSConfig JSON of a mesh or of a host's feed (large ones summarised unless `full` is set) |
 | `history` | Recent changes: who did what to which item |
@@ -95,6 +95,7 @@ Changing (only with `--allow-changes`, and only within the account's permissions
 | `remove_host_everywhere` | Lists what a host is in; with `confirm` set, takes it out of every group and deletes it |
 | `set_task_enabled` | Enables or disables one task of a mesh |
 | `update_test` | Changes a test's options and how often it repeats, after checking them against pScheduler's schema |
+| `record_site_contact` | Records a step in following up with a site about its silent hosts (asked, replied, working, fixed, retired, no reply), with how, a ticket reference and a note |
 
 Every tool is marked read-only or not, and `remove_host_everywhere` as destructive, so assistants that ask
 before acting know which calls to ask about.
