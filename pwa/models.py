@@ -7,7 +7,7 @@ JSON columns work on PostgreSQL (production) and SQLite (tests, development).
 """
 import datetime
 
-from sqlalchemy import (JSON, Boolean, Column, DateTime, ForeignKey, Integer,
+from sqlalchemy import (JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer,
                         String, Table, Text, UniqueConstraint)
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -304,6 +304,26 @@ class Publication(Base):
     checked = Column(DateTime)
     ok = Column(Boolean, default=True, nullable=False)
     message = Column(Text, default="")                 # validation error when not ok
+
+
+class SiteContact(Base):
+    """One step in following up with a site about its silent hosts (Reports > Follow-up).
+
+    Keyed by the site's name as the follow-up list shows it, so it outlives the
+    hosts themselves (a retired host is deleted; the record of asking stays).
+    Created by migration 0002; keep the two in step.
+    """
+    __tablename__ = "site_contacts"
+    id = Column(Integer, primary_key=True)
+    site = Column(String(255), nullable=False, index=True)
+    hostname = Column(String(255))                     # one host, or empty for the whole site
+    contacted = Column(Date, nullable=False)
+    via = Column(String(40))                           # ticket, e-mail, meeting, other
+    reference = Column(String(500))                    # ticket number or URL
+    status = Column(String(20), nullable=False)        # see pwa/followup.py STATUSES
+    note = Column(Text, default="")
+    created = Column(DateTime, default=now)
+    created_by = Column(String(255))
 
 
 SCOPE_MODELS = {"host": Host, "hostgroup": HostGroup, "test": Test,

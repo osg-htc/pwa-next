@@ -146,7 +146,7 @@ Pages also carry `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and 
 | Linking the existing PWA accounts | Implemented (see docs/MIGRATION.md) but not yet exercised with a real CILogon login. In the OSG/WLCG instance only 6 of the 51 people who own something have a CILogon identity on record; the rest use local passwords and will need an administrator's one-click confirmation at first login. |
 | Scripted access | `pwa mcp` (docs/MCP.md) gives AI assistants the read tools and five change tools, run locally on the host by its administrators. Not yet: remote MCP for everyone with a login (personal tokens or CILogon), a REST API. PWA's admin API is not reproduced. |
 | pScheduler-side validation | Validation uses the bundled schemas; asking a live pScheduler (`psconfig validate` does) would catch what schemas cannot. |
-| Schema migrations | Tables are created, not migrated. Needs a migration tool before the first production data. |
+| Schema migrations | Done (Alembic from RHEL 9 AppStream, `pwa/schema.py`, `pwa/migrations/`): every command brings the schema up to date; databases from 0.2.3 and older are stamped as the baseline first. A new table or column needs a model change AND a migration; `tests/test_schema.py` checks they agree. |
 | Browser check | Pages were exercised over HTTP and by tests, but not looked at in a browser by the author. |
 | Lookup Service 5.3 format | Not implemented; the current format is. |
 

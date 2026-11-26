@@ -60,10 +60,11 @@ def main(argv=None):
 
     cfg = config.load()
     engine = db.make_engine(cfg["DATABASE_URL"])
-    db.create_all(engine)
+    before, after = db.create_all(engine)
     session = db.make_session_factory(engine)()
     if args.command == "init-db":
-        print("tables ready in", cfg["DATABASE_URL"].split("@")[-1])
+        print("tables ready in %s (schema revision %s%s)" % (
+            cfg["DATABASE_URL"].split("@")[-1], after, "" if before == after else ", was %s" % (before or "none")))
     elif args.command == "import-pwa":
         from . import models as m
         if session.query(m.Mesh).count() or session.query(m.Host).count():

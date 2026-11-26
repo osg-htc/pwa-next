@@ -14,6 +14,7 @@ BuildRequires:  systemd-rpm-macros
 
 Requires:       python3-flask >= 2.0
 Requires:       python3-sqlalchemy >= 1.4
+Requires:       python3-alembic >= 1.7
 Requires:       python3-jsonschema >= 3.2
 Requires:       python3-psycopg2
 Requires:       httpd

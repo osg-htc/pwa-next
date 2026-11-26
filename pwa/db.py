@@ -2,7 +2,6 @@
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-from .models import Base
 
 
 def make_engine(url):
@@ -25,9 +24,11 @@ def make_session_factory(engine):
 
 
 def create_all(engine):
+    """Create or upgrade the tables (see pwa/schema.py).  Returns (revision before, after)."""
     if engine.dialect.name == "postgresql":
         encoding = engine.execute("show server_encoding").scalar()
         if encoding != "UTF8":
             raise RuntimeError("the PostgreSQL database uses encoding %s; create it with "
                                "createdb -E UTF8 -T template0 (names contain non-ASCII characters)" % encoding)
-    Base.metadata.create_all(engine)
+    from . import schema
+    return schema.upgrade(engine)
