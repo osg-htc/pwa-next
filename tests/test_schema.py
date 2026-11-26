@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import inspect
 
 from pwa import db, models as m, schema
@@ -16,8 +18,17 @@ def test_new_database_gets_every_table_at_the_newest_revision(tmp_path):
     assert db.create_all(engine) == (after, after)                 # running again changes nothing
 
 
+def _empty(url):
+    """A database to work in: PostgreSQL when the suite runs against it (packaging/rehearse.sh)."""
+    engine = db.make_engine(url)
+    if not url.startswith("sqlite"):
+        m.Base.metadata.drop_all(engine)
+        engine.execute("drop table if exists alembic_version")
+    return engine
+
+
 def test_a_database_from_before_migrations_is_upgraded(tmp_path):
-    engine = db.make_engine("sqlite:///%s" % (tmp_path / "old.db"))
+    engine = _empty(os.environ.get("PWA_TEST_DATABASE_URL") or "sqlite:///%s" % (tmp_path / "old.db"))
     old_tables = [t for name, t in m.Base.metadata.tables.items() if name != "site_contacts"]
     m.Base.metadata.create_all(engine, tables=old_tables)          # what pwa-next 0.2.3 made
     with engine.begin() as conn:

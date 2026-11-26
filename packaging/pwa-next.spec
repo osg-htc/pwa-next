@@ -1,5 +1,5 @@
 Name:           pwa-next
-Version:        0.2.3
+Version:        0.2.4
 Release:        1%{?dist}
 Summary:        Web administration for perfSONAR pSConfig meshes
 
@@ -82,6 +82,16 @@ exit 0
 %dir %attr(0755,pwa,pwa) %{_sharedstatedir}/pwa/pub
 
 %changelog
+* Thu Nov 26 2026 Shawn McKee - 0.2.4-1
+- Database schema migrations (Alembic, python3-alembic from AppStream); a
+  database from 0.2.3 or older is upgraded on the next `pwa init-db`.
+- Follow-up with sites: record who was contacted, when, how and the outcome;
+  status per site, in the CSV and over MCP (record_site_contact).
+- PWA_MERGE_DUPLICATES: identical tasks in several meshes measure each shared
+  pair once in the per-host feeds (off by default).
+- Lookup Service: next-generation (pslookup) records understood
+  (PWA_LOOKUP_NEW_URL); hosts registered twice no longer lose fields.
+
 * Thu Nov 26 2026 Shawn McKee - 0.2.3-1
 - Reports > Follow-up with sites: silent hosts grouped by the site that runs
   them, what to ask each site, and how to reach it (also as CSV and over MCP).
