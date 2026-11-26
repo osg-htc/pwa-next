@@ -89,6 +89,10 @@ def main(argv=None):
     elif args.command == "lookup-sync":
         from . import lookup
         services, hosts = lookup.fetch(args.url or cfg["LOOKUP_URL"])
+        if cfg.get("LOOKUP_NEW_URL"):
+            new_services, new_hosts = lookup.fetch_new(cfg["LOOKUP_NEW_URL"])
+            print("next-generation index: %d hosts" % len(new_hosts))
+            services, hosts = new_services + services, new_hosts + hosts   # current format last: it wins
         r = lookup.sync(session, services, hosts, dry_run=args.dry_run)
         print("%sLookup Service lists %d hosts: %d new, %d updated, %d unchanged, %d now self-registering" % (
             "(dry run) " if args.dry_run else "", r["registered"], len(r["created"]), r["updated"],

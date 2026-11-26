@@ -42,6 +42,94 @@ def fetch(url=DEFAULT_URL):
     return services, hosts
 
 
+# --------------------------------------------------------------------------
+# The next-generation format (perfsonar-pslookup, perfsonar/pslookup-service)
+# --------------------------------------------------------------------------
+#
+# perfSONAR's Python registration client writes one record per network
+# interface, each with the whole host embedded, to a new index:
+#   {"name": "eth0", "addresses": [...], "pscheduler_tests": [...],
+#    "host": {"name": [fqdn, ip, ...], "client_uuid": "...",
+#             "location": {"sitename", "country", "city", ...},
+#             "group_communities": [...], "perfsonar_version": "...",
+#             "perfsonar_bundle": "...", "pscheduler_service": {"urls", "tests", "tools"},
+#             "os_name", "os_version", "os_kernel", "vm", "manufacturer", ...}}
+# (lookup_service.py build_record() and schema/schema.json in that repository).
+# As of perfSONAR 5.3.0 nightlies hosts still register the format above
+# (lsregistrationdaemon), and the new index has no public search endpoint, so
+# this is used only when PWA_LOOKUP_NEW_URL names one.  The records are turned
+# into the (service, host) pairs `sync` already understands.
+
+_NEW_HOST_FIELDS = {          # new-format host field -> current-format host field
+    "perfsonar_version": "pshost-toolkitversion", "perfsonar_bundle": "pshost-bundle",
+    "role": "pshost-role", "access_policy": "pshost-access-policy", "access_notes": "pshost-access-notes",
+    "os_name": "host-os-name", "os_version": "host-os-version", "os_kernel": "host-os-kernel",
+    "os_architecture": "host-os-architecture", "vm": "host-vm", "manufacturer": "host-manufacturer",
+    "product_name": "host-productname", "memory_bytes": "host-hardware-memory",
+    "processor_core_count": "host-hardware-processorcore",
+}
+_NEW_LOCATION_FIELDS = {"sitename": "location-sitename", "country": "location-country", "city": "location-city",
+                        "state_province_region": "location-state", "latitude": "location-latitude",
+                        "longitude": "location-longitude"}
+
+
+def is_new_format(record):
+    return isinstance(record.get("host"), dict) and "type" not in record
+
+
+def from_new_format(records):
+    """New-format records -> (pScheduler service records, host records) in the current format.
+
+    Records of one host (one per interface) are put back together by the host's
+    client_uuid, or by its names when that is missing.
+    """
+    by_host = {}
+    for r in records:
+        if not is_new_format(r):
+            continue
+        host = r["host"]
+        key = host.get("client_uuid") or "|".join(sorted(str(n).lower() for n in host.get("name") or []))
+        e = by_host.setdefault(key, {"host": host, "addresses": [], "tests": set()})
+        e["addresses"] += [a for a in r.get("addresses") or [] if a not in e["addresses"]]
+        e["tests"].update(r.get("pscheduler_tests") or [])
+    services, hosts = [], []
+    for key, e in by_host.items():
+        host, uri = e["host"], "new/host/%s" % key
+        meta = host.get("meta") or {}
+        v1 = {"uri": uri, "type": ["host"],
+              "host-name": list(dict.fromkeys(list(host.get("name") or []) + e["addresses"])),
+              "group-communities": list(host.get("group_communities") or [])}
+        for new, old in _NEW_HOST_FIELDS.items():
+            value = host.get(new) if host.get(new) not in (None, "") else meta.get(new)
+            if value not in (None, ""):
+                v1[old] = [str(value)]
+        for new, old in _NEW_LOCATION_FIELDS.items():
+            value = (host.get("location") or {}).get(new)
+            if value not in (None, ""):
+                v1[old] = [str(value)]
+        if "pshost-toolkitversion" in v1:
+            v1["pshost-bundle-version"] = v1["pshost-toolkitversion"]
+        ps = host.get("pscheduler_service") or {}
+        tests = sorted(set(ps.get("tests") or []) | e["tests"])
+        if not tests and not ps.get("urls"):
+            continue                          # registers no pScheduler: not a measurement host
+        hosts.append(v1)
+        services.append({"type": ["service"], "service-type": ["pscheduler"], "service-host": [uri],
+                         "service-locator": list(ps.get("urls") or []), "pscheduler-tests": tests,
+                         "group-communities": list(host.get("group_communities") or [])})
+    return services, hosts
+
+
+def fetch_new(url, timeout=60):
+    """(service records, host records) from a search endpoint over the new index."""
+    body = json.dumps({"query": {"bool": {"filter": [{"range": {"expires": {"gt": "now"}}}]}},
+                       "size": 10000}).encode()
+    req = urllib.request.Request(url, data=body, method="GET",
+                                 headers={"Content-Type": "application/json", "User-Agent": "pwa-next"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return from_new_format([hit["_source"] for hit in json.load(resp)["hits"]["hits"]])
+
+
 def _first(record, key):
     v = record.get(key)
     if isinstance(v, list):
@@ -140,9 +228,13 @@ def sync(session, services, hosts, now=None, dry_run=False, resolve=reverse_dns)
         name = next((n for n in names if n in existing), names[0])
         fields = describe(service, host)
         if name in seen:                     # the same name registered twice: merge what it offers
-            fields["capabilities"] = sorted(set(fields["capabilities"]) | set(seen[name]["capabilities"]))
-            if not host:
-                fields = dict(seen[name], capabilities=fields["capabilities"])
+            before = seen[name]
+            merged = dict(before) if not host else {k: (v if v else before.get(k)) for k, v in fields.items()}
+            for k in ("capabilities", "communities"):        # lists: everything either registration lists
+                merged[k] = sorted(set(fields.get(k) or []) | set(before.get(k) or []))
+            if host and before.get("info"):                  # later registration wins, but never blanks
+                merged["info"] = dict(before["info"], **(fields.get("info") or {}))
+            fields = merged
         seen[name] = fields
 
     summary = {"registered": len(seen), "created": [], "updated": 0, "unchanged": 0,
