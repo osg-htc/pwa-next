@@ -144,7 +144,7 @@ Pages also carry `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and 
 | Deployment | Rehearsed in EL9 containers only (`packaging/rehearse.sh`, `packaging/rehearse-ansible.sh`): RPM build and install, PostgreSQL 13, Apache with mod_wsgi and password sign-in, and the Ansible playbook. Not yet on a real host. SELinux enforcing is not handled (AGLT2 runs permissive). |
 | CILogon | The mod_auth_openidc configuration parses but has never met CILogon. Client registration, the claim names, and which eduGAIN identity providers CILogon admits all need confirming against a real login. |
 | Linking the existing PWA accounts | Implemented (see docs/MIGRATION.md) but not yet exercised with a real CILogon login. In the OSG/WLCG instance only 6 of the 51 people who own something have a CILogon identity on record; the rest use local passwords and will need an administrator's one-click confirmation at first login. |
-| Scripted access | No REST API or API tokens yet. PWA's admin API is not reproduced. |
+| Scripted access | `pwa mcp` (docs/MCP.md) gives AI assistants the read tools and five change tools, run locally on the host by its administrators. Not yet: remote MCP for everyone with a login (personal tokens or CILogon), a REST API. PWA's admin API is not reproduced. |
 | pScheduler-side validation | Validation uses the bundled schemas; asking a live pScheduler (`psconfig validate` does) would catch what schemas cannot. |
 | Schema migrations | Tables are created, not migrated. Needs a migration tool before the first production data. |
 | Browser check | Pages were exercised over HTTP and by tests, but not looked at in a browser by the author. |
@@ -159,5 +159,6 @@ pwa/authz.py       roles and grants          pwa/lookup.py     Lookup Service sy
 pwa/importer.py    one-time import from PWA  pwa/compat.py     semantic template comparison
 pwa/testinfo.py    test-type help, tool support  pwa/reports.py  configuration analyses
 pwa/web/           Flask app, pages          pwa/specs/        schemas from pScheduler and pSConfig
+pwa/mcp.py         MCP server (stdio)        pwa/cli.py        the `pwa` command
 tools/             baseline fetch, import check              tests/   pytest suite
 ```

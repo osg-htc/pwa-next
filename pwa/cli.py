@@ -9,6 +9,10 @@
                              set branding from a JSON file (and optionally the logo),
                              as the Branding page would; for scripted deployments
   serve [--port N]           development web server (never for production)
+  mcp --as LOGIN [--allow-changes]
+                             MCP server on standard input/output for AI assistants,
+                             acting as that account (read-only unless --allow-changes);
+                             see docs/MCP.md
 """
 import argparse
 import sys
@@ -34,12 +38,21 @@ def main(argv=None):
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8085)
     p.add_argument("--host", default="127.0.0.1")
+    p = sub.add_parser("mcp")
+    p.add_argument("--as", dest="login", required=True,
+                   help="the account to act as: its login (CILogon subject or password-file name) or e-mail")
+    p.add_argument("--allow-changes", action="store_true",
+                   help="also offer the tools that change things (within the account's permissions)")
     args = ap.parse_args(argv)
 
     if args.command == "serve":
         from .web import create_app
         create_app().run(host=args.host, port=args.port, debug=False)
         return 0
+
+    if args.command == "mcp":
+        from . import mcp
+        return mcp.main(config.load(), args.login, args.allow_changes)
 
     cfg = config.load()
     engine = db.make_engine(cfg["DATABASE_URL"])
